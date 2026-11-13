@@ -530,6 +530,16 @@
     background:#fff;resize:none;font-family:inherit;color:var(--ink);
   }
   .fu-text:focus{outline:none;border-color:var(--jade);box-shadow:0 0 0 3px rgba(27,110,88,.08);}
+  .fu-big{height:110px;font-size:13.5px;line-height:1.8;}
+  .fu-tools{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .fu-mic{
+    display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
+    padding:8px 13px;border-radius:999px;border:1px solid #DCEDE3;
+    background:#F3FAF6;color:var(--jade);font-size:11.5px;font-weight:500;
+  }
+  .fu-mic.on{background:var(--jade);border-color:var(--jade);color:#fff;}
+  .fu-tools span{font-size:10.5px;color:var(--ink3);line-height:1.5;}
+  .fu-skip{color:var(--ink3);font-size:11px;text-decoration:underline;text-underline-offset:3px;}
   .fu-next{margin-top:16px;}
   .fu-row{padding:11px 0;border-bottom:1px solid var(--line2);}
   .fu-row:last-child{border-bottom:0;}
@@ -1261,7 +1271,7 @@
           <h1 class="h1">先留一个手机号</h1>
           <p class="sub">只用来生成你自己的档案。不发广告，不要孩子姓名，也不要身份证。</p>
           <div class="login-seq">避雷星第 <b id="loginSeq">8,241</b> 位家园入住</div>
-          <div class="ver">演示版 v4.7 · 6 轮追问 · 火山识别</div>
+          <div class="ver">演示版 v4.8 · 简答追问 · 火山识别</div>
         </div>
 
         <form id="loginForm" novalidate>
@@ -1433,7 +1443,7 @@
         </div>
 
         <div class="block" id="repFollowBlock">
-          <div class="block-h"><span class="dot green"></span>追问记录<span class="n">6 轮</span></div>
+          <div class="block-h"><span class="dot green"></span>家长补充<span class="n">3 题</span></div>
           <div id="repFollow"></div>
         </div>
 
@@ -2780,6 +2790,12 @@ function voiceUI(kind, on, sec) {
     const h = $('#rfHint');
     if (h) h.textContent = on ? `录音中 ${sec}s · 再点一下结束` : '也可以直接打字';
   }
+  if (kind === 'follow') {
+    const m = $('#fuMic');
+    if (m) m.classList.toggle('on', on);
+    const h = $('#fuHint');
+    if (h) h.textContent = on ? `录音中 ${sec}s · 说完再点一下` : '可以直接打字，也可以点左边说';
+  }
 }
 
 const ASR_FIX = [
@@ -2830,12 +2846,13 @@ async function blobToWav(blob) {
   const ratio = audio.sampleRate / rate;
   const outLen = Math.max(1, Math.floor(len / ratio));
   const out = new Int16Array(outLen);
-  const step = Math.ceil(ratio);
   for (let i = 0; i < outLen; i++) {
-    const start = Math.floor(i * ratio);
-    let sum = 0, n = 0;
-    for (let k = start; k < Math.min(len, start + step); k++) { sum += mix[k]; n++; }
-    const v = Math.max(-1, Math.min(1, sum / (n || 1)));
+    const pos = i * ratio;
+    const i0 = Math.floor(pos);
+    const frac = pos - i0;
+    const s0 = mix[Math.min(len - 1, i0)];
+    const s1 = mix[Math.min(len - 1, i0 + 1)];
+    const v = Math.max(-1, Math.min(1, s0 + (s1 - s0) * frac));
     out[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
   }
   const ab = new ArrayBuffer(44 + out.length * 2);
@@ -2859,7 +2876,7 @@ async function startCloud(kind) {
   }
   let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
   } catch (e) {
     toast('麦克风被拒绝，请在浏览器里允许后重试');
     return;
@@ -2899,7 +2916,7 @@ async function startCloud(kind) {
   voice.tick = setInterval(() => {
     const sec = Math.floor((Date.now() - voice.t0) / 1000);
     voiceUI(kind, true, sec);
-    if (sec >= 8) stopCloud();
+    if (sec >= 30) stopCloud();
   }, 500);
 }
 
@@ -3006,6 +3023,16 @@ function handleVoiceText(kind, text) {
     if (h) h.textContent = '已转成文字，可修改后提交';
     return;
   }
+  if (kind === 'follow') {
+    const ta = $('#fuText');
+    if (ta) {
+      ta.value = (ta.value ? ta.value + ' ' : '') + text;
+      ta.dispatchEvent(new Event('input'));
+    }
+    const h = $('#fuHint');
+    if (h) h.textContent = '已转成文字，可继续补充或直接改';
+    return;
+  }
 
   const p = parseUtter(text);
   const filled = [];
@@ -3110,8 +3137,8 @@ function renderReport() {
   if (fuN) fuN.textContent = follow.length + ' 轮';
   $('#repFollow').innerHTML = follow.map((f, i) => `
     <div class="fu-row">
-      <div class="fu-q">追问 ${i + 1}｜${esc(f.q)}</div>
-      <div class="fu-a">${esc(f.a || '未选择')}${f.note ? `<small>补充：${esc(f.note)}</small>` : ''}</div>
+      <div class="fu-q">简答 ${i + 1}｜${esc(f.q)}</div>
+      <div class="fu-a">${esc(f.a || '未填写')}</div>
     </div>`).join('');
   $('#repStage').innerHTML = `
     <p><b>${esc(r.stage.label)}：</b>${esc(r.stage.traits)}</p>
@@ -3726,12 +3753,10 @@ function renderAssess() {
   }
 
   if (asPhase === 'follow') {
-    if (asFuIdx >= 3 && !asFollow[asFuIdx]) asFollow[asFuIdx] = hydrateFollow(asFuIdx);
     const f = asFollow[asFuIdx];
-    const saved = f.answer;
-    const pick = asFuPick != null ? asFuPick : (saved ? saved.i : null);
+    const saved = f.answer || '';
     body.innerHTML = `
-      <p class="kicker" style="margin-bottom:10px">追问 · ${asFuIdx + 1} / 6</p>
+      <p class="kicker" style="margin-bottom:10px">简答 · ${asFuIdx + 1} / 3</p>
       <div class="as-why"><b>为什么问你：</b>${f.why}</div>
       <div class="as-q-row">
         <h1 class="as-q">${esc(f.q)}</h1>
@@ -3739,38 +3764,44 @@ function renderAssess() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8 8 0 0 1 0 12"/></svg>
         </button>
       </div>
-      <div class="as-opts">
-        ${f.opts.map((o, i) => `<button class="as-opt ${pick === i ? 'on' : ''}" type="button" data-i="${i}"><span class="k">${i + 1}</span>${esc(o)}</button>`).join('')}
+      <textarea class="fu-text fu-big" id="fuText" maxlength="200" placeholder="${esc(f.ph)}">${esc(saved)}</textarea>
+      <div class="fu-tools">
+        <button class="fu-mic" type="button" id="fuMic">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+          语音回答
+        </button>
+        <span id="fuHint">可以直接打字，也可以点左边说</span>
       </div>
-      <textarea class="fu-text" id="fuText" maxlength="80" placeholder="想补充一句可以写在这里（可不填）">${saved && saved.note ? esc(saved.note) : ''}</textarea>
-      <button class="btn primary fu-next" id="fuNext" ${pick == null ? 'disabled' : ''}>${asFuIdx >= 5 ? '生成避雷报告' : '下一题'} →</button>
+      <button class="btn primary fu-next" id="fuNext" ${saved.trim().length >= 2 ? '' : 'disabled'}>${asFuIdx >= 2 ? '生成避雷报告' : '下一题'} →</button>
       <div class="as-nav">
         <button class="as-back" type="button" id="asBack" ${asFuIdx === 0 ? 'disabled' : ''}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
           上一题
         </button>
-        <span>追问 ${asFuIdx + 1}/6 · 可跳着补充</span>
+        <button class="fu-skip" type="button" id="fuSkip">这题跳过</button>
       </div>
     `;
-    $$('#asBody .as-opt').forEach(b => {
-      b.onclick = () => {
-        asFuPick = +b.dataset.i;
-        $$('#asBody .as-opt').forEach(x => x.classList.toggle('on', x === b));
-        $('#fuNext').disabled = false;
-      };
-    });
+    const ta = $('#fuText');
+    const next = $('#fuNext');
+    ta.oninput = () => { next.disabled = ta.value.trim().length < 2; };
     $('#asSpeak').onclick = speakCurrent;
+    $('#fuMic').onclick = () => startVoice('follow');
     $('#asBack').onclick = () => {
       if (asFuIdx === 0) return;
+      f.answer = ta.value.trim();
       asFuIdx--;
-      asFuPick = null;
       renderAssess();
     };
-    $('#fuNext').onclick = () => {
-      f.answer = { i: asFuPick, label: f.opts[asFuPick], note: ($('#fuText').value || '').trim() };
-      if (asFuIdx >= 5) { finishAssess(); return; }
+    $('#fuSkip').onclick = () => {
+      f.answer = ta.value.trim();
+      if (asFuIdx >= 2) return finishAssess();
       asFuIdx++;
-      asFuPick = null;
+      renderAssess();
+    };
+    next.onclick = () => {
+      f.answer = ta.value.trim();
+      if (asFuIdx >= 2) return finishAssess();
+      asFuIdx++;
       renderAssess();
     };
     return;
@@ -3825,8 +3856,7 @@ function speakCurrent() {
     setTimeout(() => btn.classList.remove('on'), 1200);
   }
   if (asPhase === 'follow' && asFollow && asFollow[asFuIdx]) {
-    const f = asFollow[asFuIdx];
-    speak(`${f.q}。${f.opts.map((o, i) => `第 ${i + 1} 个，${o}`).join('。')}`);
+    speak(asFollow[asFuIdx].q);
     return;
   }
   const q = ASK[asQid];
@@ -3872,70 +3902,29 @@ function buildFollowups() {
   const pr = state.profile;
   const ob = obsOf({ answers: asAnswers }) || {};
   const want = pr.wants[0];
-  let weakWhy, weakOpts;
-  if ((ob.support || 2) <= 1.5) {
-    weakWhy = '测评里你选了「一对一时明显更好」，我们要确认他在什么场景下会掉队。';
-    weakOpts = ['人多时不敢提问', '听懂了但自己不会做', '容易被别人带跑'];
-  } else if ((ob.focusScore ?? 2) <= 1) {
-    weakWhy = `你观察到他能专注约 ${ob.attentionMin} 分钟，我们想分清是「启动难」还是「坐不住」。`;
-    weakOpts = ['开始就要催', '中间容易走神', '快结束时坐不住'];
-  } else if ((ob.autonomy ?? 2) <= 1.2) {
-    weakWhy = '测评里他更依赖大人陪着，我们想确认依赖具体发生在哪一步。';
-    weakOpts = ['不会安排先后顺序', '遇到难的立刻停下', '做完从不检查'];
-  } else if ((ob.persist ?? 2) <= 1) {
-    weakWhy = '测评里遇到难题他容易停，我们想分清是怕错，还是没方法。';
-    weakOpts = ['怕做错被说', '不知道从哪下手', '做久了就烦'];
-  } else {
-    weakWhy = '测评结果比较均衡，我们想确认你怎么判断「这门课有用」。';
-    weakOpts = ['能看到作品', '老师反馈具体', '孩子会主动提起'];
-  }
+  const weak = (ob.support || 2) <= 1.5 ? '需要人陪'
+    : (ob.focusScore ?? 2) <= 1 ? '专注时间短'
+      : (ob.autonomy ?? 2) <= 1.2 ? '自己不太会开始' : '还看不出明显短板';
   return [
     {
-      tag: '目标',
-      why: `你说最想先解决「${want}」，${pr.age} 岁这个阶段，目标不同，选课标准完全不同。`,
-      q: `这学期如果只成一件，你最想看到「${want}」带来什么变化？`,
-      opts: ['分数 / 结果有变化', '愿意主动做这件事', '能坐住、坚持完成']
+      q: '孩子是男孩还是女孩？平时主要是谁带他多一些，每天大概陪多久？',
+      why: `建档里是 ${pr.age} 岁 ${pr.grade}、${pr.city}。性别和主要带养人会直接影响我们对线上还是到店、以及家里能不能执行到位的判断。`,
+      ph: '例如：女孩，妈妈带得多，工作日晚上 1 小时，周末全天',
+      answer: ''
     },
     {
-      tag: '卡点',
-      why: weakWhy,
-      q: '他在家做这件事时，最常出现的是哪种情况？',
-      opts: weakOpts
+      q: `最近一次让你觉得「${want}这个问题必须解决」，当时是什么场景？`,
+      why: `你选的第一个目标是「${want}」，测评里显示「${weak}」。用一个具体场景，比选项更能判断是偶发还是已经影响日常。`,
+      ph: '例如：上周写作业拖到十点，我一说他就哭',
+      answer: ''
     },
     {
-      tag: '投入',
-      why: `你填的是一周能匀出 ${ob.cap || 2} 个时段，要把「${want}」排进去，得先确定投入方式。`,
-      q: '这学期你更倾向哪种投入方式？',
-      opts: ['先花小钱试 4 次', '报完整一期，但要有效果', '先不报，家里自己带']
+      q: '这学期结束，你希望看到哪一个具体变化？用你自己的话说一句就行。',
+      why: `你填的是一周能匀出 ${ob.cap || 2} 个时段。目标越具体，越能判断这门课到底值不值。`,
+      ph: '例如：能自己坐下来写完作业，不用我催三次',
+      answer: ''
     }
   ];
-}
-
-function hydrateFollow(i) {
-  const pr = state.profile;
-  const ob = obsOf({ answers: asAnswers }) || {};
-  const want = pr.wants[0];
-  const a1 = asFollow[0] && asFollow[0].answer ? asFollow[0].answer.label : '你说的目标';
-  const a2 = asFollow[1] && asFollow[1].answer ? asFollow[1].answer.label : '你提到的卡点';
-  const interest = ob.interest || want;
-  if (i === 3) return {
-    tag: '陪跑',
-    why: `你填的是一周 ${ob.cap || 2} 个时段，「${want}」能不能落地，很大程度取决于平时谁陪、能不能固定下来。`,
-    q: '平时主要谁陪他做这件事？',
-    opts: ['妈妈主导', '爸爸主导', '老人接送，学什么我们定', '基本没人陪，靠孩子自己']
-  };
-  if (i === 4) return {
-    tag: '频次',
-    why: `你刚选的是「${a2}」，我们想把它还原成一个具体场景，判断是偶发还是稳定模式。`,
-    q: `上周做「${interest}」时，这个情况大概出现几次？`,
-    opts: ['几乎每次都这样', '一周两三次', '偶尔一次', '没注意过，回去看一下']
-  };
-  return {
-    tag: '验收',
-    why: `你希望先看到「${a1}」，8 周后我们按同一件事验收，避免只凭感觉判断有没有用。`,
-    q: '8 周后，哪件事发生了你会觉得这笔钱没白花？',
-    opts: ['能自己独立完成一次', '愿意主动提起或主动做', '老师能说出具体进步', '有作品 / 成果拿得出手']
-  };
 }
 
 function startFollow() {
@@ -3948,14 +3937,7 @@ function startFollow() {
 
 function finishAssess() {
   if (asFollow) {
-    state.profile.follow = asFollow.map(f => ({
-      q: f.q, why: f.why,
-      a: f.answer ? f.answer.label : '',
-      note: f.answer ? f.answer.note : ''
-    }));
-    const f3 = asFollow[2] && asFollow[2].answer ? asFollow[2].answer.i : -1;
-    if (f3 === 0) state.profile.prefs = { ...(state.profile.prefs || {}), cheap: true };
-    if (f3 === 2) state.profile.holdOff = true;
+    state.profile.follow = asFollow.map(f => ({ q: f.q, why: f.why, a: (f.answer || '').trim() }));
   }
   state.assessment = { answers: asAnswers, at: Date.now() };
   state.report = buildReport(state.profile);

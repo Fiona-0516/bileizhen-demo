@@ -92,14 +92,20 @@ async function transcribe(pcm) {
         }
         try { ws.send(frame(2, 0, 0, 1, gzipSync(pcm.subarray(off, off + step)))); } catch (e) { }
         off += step;
-      }, 60);
+      }, 100);
     };
 
     ws.onmessage = async ev => {
       const raw = Buffer.from(ev.data instanceof Blob ? await ev.data.arrayBuffer() : ev.data);
       let body;
       try { body = JSON.parse(readFrame(raw)); } catch (e) { return; }
-      if (body.result && body.result.text) finalText = body.result.text;
+      if (body.result) {
+        if (body.result.text) finalText = body.result.text;
+        else if (Array.isArray(body.result.utterances)) {
+          const t = body.result.utterances.map(u => u.text || '').join('');
+          if (t) finalText = t;
+        }
+      }
       if (body.error) { clearTimeout(timer); reject(new Error(body.error)); }
     };
 
