@@ -1,0 +1,4276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F6F3EC">
+<title>避雷针 · 家长端演示</title>
+<style>
+  :root{
+    --paper:#F6F3EC;
+    --card:#FFFDF8;
+    --ink:#191C18;
+    --ink2:#5E6259;
+    --ink3:#93968C;
+    --line:#E5E0D3;
+    --line2:#EFEBE0;
+    --deep:#16302A;
+    --jade:#1E6B57;
+    --jade-soft:#E8F0EA;
+    --clay:#A8452B;
+    --clay-soft:#F8E9E3;
+    --amber:#C89B2E;
+    --amber-soft:#FBF2DB;
+    --serif:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC",SimSun,serif;
+    --sans:"PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:
+      radial-gradient(1000px 520px at 50% -12%, #FFF8E6 0%, rgba(255,248,230,0) 62%),
+      #EDE8DC;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  input,button,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
+  button{border:none;background:none;cursor:pointer;}
+  ::selection{background:#DCE9DE;}
+
+  .stage{
+    min-height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:64px;
+    padding:0;
+    overflow:hidden;
+  }
+  .stage-note{display:none;}
+
+  /* ---------- app shell ---------- */
+  .app{
+    position:relative;
+    width:100%;
+    max-width:430px;
+    height:100dvh;
+    background:var(--paper);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+
+  .appbar{
+    flex:0 0 auto;
+    height:56px;
+    padding:0 12px 0 6px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    border-bottom:1px solid transparent;
+    transition:border-color .2s;
+    z-index:5;
+  }
+  .appbar.solid{border-bottom-color:var(--line2);}
+  .appbar[hidden]{display:none;}
+  .iconbtn{
+    width:36px;height:36px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--ink);
+  }
+  .iconbtn:active{background:#EAE5D8;}
+  .bar-title{
+    font-family:var(--serif);
+    font-size:16px;
+    letter-spacing:.5px;
+    font-weight:600;
+  }
+  .bar-brand{
+    display:flex;align-items:center;gap:7px;
+    font-family:var(--serif);font-weight:600;font-size:16px;letter-spacing:1px;
+  }
+  .bar-right{margin-left:auto;display:flex;align-items:center;gap:4px;}
+
+  .viewport{flex:1;position:relative;overflow:hidden;}
+  .screen{
+    position:absolute;inset:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    padding:4px 20px 28px;
+    display:none;
+  }
+  .screen.on{display:block;animation:screenIn .38s cubic-bezier(.22,.9,.24,1);}
+  @keyframes screenIn{
+    from{opacity:0;transform:translateY(10px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  .app.has-tab .screen{padding-bottom:96px;}
+
+  .tabbar{
+    position:absolute;left:0;right:0;bottom:0;
+    height:64px;
+    padding-bottom:env(safe-area-inset-bottom);
+    display:none;
+    background:rgba(250,248,242,.92);
+    backdrop-filter:blur(14px);
+    border-top:1px solid var(--line2);
+    z-index:6;
+  }
+  .app.has-tab .tabbar{display:flex;}
+  .tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    color:var(--ink3);font-size:11px;letter-spacing:.4px;
+  }
+  .tab svg{width:21px;height:21px;stroke-width:1.6;}
+  .tab.on{color:var(--deep);}
+  .tab.on .tab-dot{opacity:1;}
+  .tab-dot{width:3px;height:3px;border-radius:50%;background:var(--clay);opacity:0;}
+
+  /* ---------- 通用 ---------- */
+  .kicker{
+    font-size:11px;letter-spacing:2px;color:var(--ink3);
+    text-transform:uppercase;
+    margin:0 0 10px;
+  }
+  .h1{font-family:var(--serif);font-size:29px;line-height:1.36;letter-spacing:-.2px;margin:0 0 12px;font-weight:600;}
+  .h2{font-family:var(--serif);font-size:20px;line-height:1.45;margin:0 0 8px;font-weight:600;}
+  .sub{font-size:13.5px;line-height:1.75;color:var(--ink2);margin:0;}
+  .tiny{font-size:11.5px;line-height:1.7;color:var(--ink3);margin:0;}
+
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;height:52px;border-radius:14px;
+    font-size:15.5px;font-weight:600;letter-spacing:.3px;
+    transition:transform .12s,opacity .2s,background .2s;
+  }
+  .btn:active{transform:scale(.985);}
+  .btn.primary{background:var(--deep);color:#F7F5EC;box-shadow:0 10px 24px -12px rgba(22,48,42,.7);}
+  .btn.primary:disabled{background:#C9CFC7;color:#F2F1EB;box-shadow:none;}
+  .btn.ghost{background:transparent;color:var(--ink2);border:1px solid var(--line);height:46px;font-weight:500;font-size:14px;}
+  .btn.link{height:auto;font-size:13px;font-weight:500;color:var(--ink2);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line);}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+  }
+
+  .field{margin-bottom:18px;}
+  .field > label{
+    display:flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:600;letter-spacing:.6px;color:var(--ink2);
+    margin-bottom:8px;
+  }
+  .field .req{color:var(--clay);font-weight:400;}
+  .control{
+    width:100%;height:50px;border-radius:12px;
+    background:var(--card);border:1px solid var(--line);
+    padding:0 14px;font-size:15px;
+    transition:border-color .2s,box-shadow .2s,background .2s;
+    appearance:none;
+  }
+  .sel{position:relative;}
+  .sel > select{padding-right:38px;cursor:pointer;}
+  .sel > .sel-i{
+    position:absolute;right:13px;top:50%;transform:translateY(-50%);
+    pointer-events:none;color:var(--ink2);display:block;
+  }
+  .control:focus{outline:none;border-color:var(--deep);box-shadow:0 0 0 3px rgba(22,48,42,.07);}
+  .control.filled{animation:fieldPulse .7s ease;}
+  @keyframes fieldPulse{
+    0%{background:#FBF3DC;border-color:#D9BF7A;}
+    100%{background:var(--card);border-color:var(--line);}
+  }
+  .control.inline-mic{padding-right:46px;}
+  .with-mic{position:relative;}
+  .mini-mic{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    color:var(--ink2);
+  }
+  .mini-mic:active{background:#EFEBDE;}
+  .mini-mic.rec{color:#C0392B;animation:micPulse 1.1s infinite;}
+  @keyframes micPulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{
+    padding:9px 14px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);
+    font-size:13.5px;color:var(--ink2);
+    transition:all .16s;
+  }
+  .chip.on{background:var(--deep);border-color:var(--deep);color:#F8F6EE;}
+  .chip:active{transform:scale(.97);}
+
+  .err{
+    display:none;font-size:12.5px;color:var(--clay);
+    background:var(--clay-soft);border-radius:10px;padding:10px 12px;margin:0 0 14px;
+    line-height:1.6;
+  }
+  .err.show{display:block;}
+
+  /* ---------- landing ---------- */
+  #s-landing{
+    padding:0 24px calc(32px + env(safe-area-inset-bottom));
+    display:none;
+  }
+  #s-landing.on{display:flex;flex-direction:column;}
+  .landing-top{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:22px 0 0;
+  }
+  .brandline{display:flex;align-items:baseline;gap:9px;}
+  .brandline b{font-family:var(--serif);font-size:19px;letter-spacing:3px;font-weight:600;}
+  .brandline span{font-size:8.5px;letter-spacing:1.6px;color:var(--ink3);}
+  .scan-chip{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:10.5px;color:var(--ink2);
+    border:1px solid var(--line);border-radius:999px;padding:5px 10px;
+    background:rgba(255,253,248,.6);
+  }
+  .landing-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:10px 0 0;position:relative;}
+  .landing-kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:11.5px;color:var(--ink2);letter-spacing:.4px;margin:0 0 18px;
+  }
+  .landing-kicker i{width:22px;height:1px;background:var(--ink3);display:block;}
+  .landing-h1{
+    font-family:var(--serif);
+    font-size:38px;line-height:1.28;font-weight:600;letter-spacing:-.5px;
+    margin:0 0 18px;color:var(--ink);
+  }
+  .landing-h1 em{font-style:normal;white-space:nowrap;color:var(--clay);
+    background:linear-gradient(transparent 66%, rgba(200,155,46,.32) 66%, rgba(200,155,46,.32) 92%, transparent 92%);
+    padding:0 2px;margin:0 -2px;}
+  .landing-sub{font-size:13.5px;line-height:1.85;color:var(--ink2);margin:0 0 22px;max-width:300px;}
+  .flowline{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:26px;}
+  .flowline span{
+    font-size:10.5px;color:var(--ink2);letter-spacing:.4px;
+    border:1px solid var(--line);border-radius:999px;padding:5px 9px;background:rgba(255,253,248,.55);
+  }
+  .flowline em{font-style:normal;color:var(--ink3);font-size:10px;}
+  .manifesto{margin:0 0 4px;border-top:1px solid rgba(22,48,42,.09);}
+  .manifesto div{display:flex;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid rgba(22,48,42,.07);}
+  .manifesto b{flex:0 0 92px;font-family:var(--serif);font-size:12.5px;font-weight:600;letter-spacing:.3px;color:var(--ink);line-height:1.6;}
+  .manifesto span{font-size:10.5px;color:var(--ink3);line-height:1.65;}
+  .landing-cta{margin-top:auto;}
+  .demo-note{
+    margin-top:14px;display:flex;align-items:flex-start;gap:7px;
+    font-size:11px;line-height:1.65;color:var(--ink3);
+  }
+  .demo-note b{color:var(--ink2);font-weight:600;}
+  .rod{
+    position:absolute;right:-6px;top:6px;width:74px;opacity:.5;pointer-events:none;
+  }
+
+  /* ---------- login ---------- */
+  .auth-head{padding:26px 0 24px;}
+  .phone-row{display:flex;gap:8px;}
+  .phone-row .control{flex:1;}
+  .send-btn{
+    flex:0 0 auto;height:50px;padding:0 14px;border-radius:12px;
+    border:1px solid var(--line);background:var(--card);
+    font-size:12.5px;color:var(--ink2);white-space:nowrap;
+  }
+  .send-btn:disabled{color:var(--ink3);background:#F1EDE2;}
+  .code-input{letter-spacing:14px;font-size:20px;font-weight:600;padding-left:18px;}
+  .code-input::placeholder{letter-spacing:1px;font-size:14px;font-weight:400;color:var(--ink3);}
+  .auth-alt{margin-top:18px;text-align:center;}
+  .privacy{
+    margin-top:26px;padding:14px;border-radius:12px;background:rgba(255,253,248,.65);
+    border:1px dashed var(--line);
+  }
+  .privacy p{margin:0;font-size:11.5px;line-height:1.75;color:var(--ink3);}
+  .privacy p + p{margin-top:6px;}
+
+  /* ---------- voice ---------- */
+  .voice-card{
+    display:flex;align-items:center;gap:12px;width:100%;
+    padding:14px 14px;border-radius:14px;
+    background:linear-gradient(180deg,#FBF6E7,#FAF4E2);
+    border:1px solid #EADFBE;
+    text-align:left;
+    transition:all .18s;
+  }
+  .voice-card:active{transform:scale(.99);}
+  .voice-card.rec{background:linear-gradient(180deg,#FBEAE4,#F9E3DA);border-color:#E8C3B4;}
+  .voice-ico{
+    flex:0 0 38px;width:38px;height:38px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--deep);color:#F5E9C8;
+  }
+  .voice-card.rec .voice-ico{background:var(--clay);}
+  .voice-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+  .voice-txt b{font-size:14px;font-weight:600;letter-spacing:.2px;}
+  .voice-txt small{font-size:11px;color:var(--ink3);line-height:1.5;}
+  .voice-wave{display:none;align-items:flex-end;gap:2.5px;height:20px;}
+  .voice-card.rec .voice-wave{display:flex;}
+  .voice-wave i{
+    width:2.5px;border-radius:2px;background:var(--clay);
+    animation:wave .8s ease-in-out infinite;
+  }
+  .voice-wave i:nth-child(1){height:6px;animation-delay:0s;}
+  .voice-wave i:nth-child(2){height:14px;animation-delay:.12s;}
+  .voice-wave i:nth-child(3){height:9px;animation-delay:.24s;}
+  .voice-wave i:nth-child(4){height:17px;animation-delay:.36s;}
+  .voice-wave i:nth-child(5){height:7px;animation-delay:.48s;}
+  @keyframes wave{0%,100%{transform:scaleY(.4);}50%{transform:scaleY(1);}}
+  .voice-echo{
+    margin:9px 0 0;font-size:12px;line-height:1.7;color:var(--jade);
+    background:var(--jade-soft);border-radius:10px;padding:9px 11px;
+  }
+  .voice-echo.warn{color:var(--clay);background:var(--clay-soft);}
+
+  /* ---------- diagnosing ---------- */
+  #s-diagnosing{padding:0;}
+  #s-diagnosing.on{
+    display:flex;align-items:center;justify-content:center;
+  }
+  .diag-wrap{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    height:100%;padding:0 34px 60px;text-align:center;
+  }
+  .radar{position:relative;width:168px;height:168px;display:grid;place-items:center;margin-bottom:38px;}
+  .radar span{
+    position:absolute;inset:0;border-radius:50%;
+    border:1px solid rgba(30,107,87,.28);
+    animation:radar 2.4s ease-out infinite;
+  }
+  .radar span:nth-child(2){animation-delay:.8s;}
+  .radar span:nth-child(3){animation-delay:1.6s;}
+  @keyframes radar{
+    0%{transform:scale(.42);opacity:0;}
+    20%{opacity:.9;}
+    100%{transform:scale(1);opacity:0;}
+  }
+  .radar-core{
+    width:74px;height:74px;border-radius:50%;
+    background:var(--deep);color:#F3E8C8;
+    display:grid;place-items:center;
+    box-shadow:0 18px 40px -18px rgba(22,48,42,.8);
+    position:relative;z-index:2;
+  }
+  .radar-core svg{width:30px;height:30px;}
+  .diag-line{
+    font-family:var(--serif);font-size:17px;line-height:1.65;
+    margin:0 0 10px;letter-spacing:.2px;min-height:56px;
+  }
+  .diag-sub{font-size:12px;color:var(--ink3);margin:0 0 30px;line-height:1.7;}
+  .diag-bar{width:150px;height:2px;background:var(--line);border-radius:2px;overflow:hidden;}
+  .diag-bar i{display:block;height:100%;width:0;background:var(--jade);animation:bar 1.9s cubic-bezier(.4,0,.2,1) forwards;}
+  @keyframes bar{to{width:100%;}}
+
+  /* ---------- report ---------- */
+  .rep-head{padding:20px 0 6px;}
+  .rep-meta{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    font-size:11.5px;color:var(--ink2);margin-bottom:12px;
+  }
+  .rep-meta .sep{width:1px;height:10px;background:var(--line);}
+  .rep-title{font-family:var(--serif);font-size:27px;line-height:1.35;margin:0 0 10px;font-weight:600;}
+  .rep-lede{font-size:12.5px;color:var(--ink2);line-height:1.8;margin:0 0 20px;}
+
+  .dims{
+    display:grid;grid-template-columns:1fr 1fr;gap:1px;
+    background:var(--line);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;margin-bottom:14px;
+  }
+  .dim{background:var(--card);padding:12px 13px 13px;}
+  .dim-k{font-size:10px;letter-spacing:1px;color:var(--ink3);margin-bottom:7px;}
+  .dim-v{font-family:var(--serif);font-size:22px;line-height:1;font-weight:600;margin-bottom:9px;font-variant-numeric:tabular-nums;}
+  .dim-v small{font-size:9.5px;color:var(--ink3);font-weight:400;margin-left:2px;}
+  .dim-bar{height:3px;background:#EDE8DA;border-radius:3px;overflow:hidden;margin-bottom:6px;}
+  .dim-bar i{display:block;height:100%;border-radius:3px;transition:width .6s ease;}
+  .dim-n{font-size:9.5px;line-height:1.5;color:var(--ink3);}
+
+  .stage-note{
+    border-left:2px solid #D9D2BE;padding:1px 0 1px 12px;margin:0 0 22px;
+  }
+  .stage-note p{font-size:11.5px;line-height:1.9;color:var(--ink2);margin:0;}
+  .stage-note p + p{margin-top:7px;}
+  .stage-note b{color:var(--ink);font-weight:600;}
+
+  .eval{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:12px 13px;margin-bottom:8px;
+  }
+  .eval-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .eval-w{font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.4;}
+  .eval-tag{
+    margin-left:auto;font-size:9.5px;letter-spacing:.3px;
+    padding:3px 8px;border-radius:999px;white-space:nowrap;
+  }
+  .eval-tag.go{color:var(--jade);background:var(--jade-soft);}
+  .eval-tag.wait{color:#8A5A12;background:var(--amber-soft);}
+  .eval-tag.no{color:var(--clay);background:var(--clay-soft);}
+  .eval-why{font-size:11.5px;line-height:1.75;color:var(--ink2);margin:0 0 7px;}
+  .eval-act{display:flex;gap:6px;font-size:11.5px;line-height:1.7;color:var(--ink);}
+  .eval-act::before{content:"→";color:var(--ink3);flex:0 0 auto;}
+
+  .block{margin-bottom:22px;}
+  .block-h{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;font-weight:600;letter-spacing:1px;color:var(--ink2);
+    margin-bottom:11px;
+  }
+  .block-h .n{
+    margin-left:auto;font-family:var(--serif);font-size:11px;
+    color:var(--ink3);letter-spacing:0;font-weight:400;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto;}
+  .dot.red{background:var(--clay);}
+  .dot.green{background:var(--jade);}
+
+  .avoid-item{
+    background:var(--card);border:1px solid var(--line);
+    border-left:2px solid var(--clay);
+    border-radius:4px 14px 14px 4px;
+    padding:15px 15px 15px 16px;margin-bottom:9px;
+  }
+  .avoid-item .idx{
+    font-family:var(--serif);font-size:10.5px;color:var(--clay);
+    letter-spacing:1.5px;display:block;margin-bottom:6px;
+  }
+  .avoid-item h3{
+    font-family:var(--serif);font-size:17px;line-height:1.5;font-weight:600;
+    margin:0 0 7px;letter-spacing:.1px;
+  }
+  .avoid-item p{margin:0;font-size:12.5px;line-height:1.8;color:var(--ink2);}
+
+  .tags-green{display:flex;flex-wrap:wrap;gap:7px;}
+  .tag-g{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;color:var(--jade);
+    background:var(--jade-soft);border:1px solid #CFE1D6;
+    border-radius:999px;padding:8px 13px;line-height:1.3;
+  }
+  .tag-g::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--jade);}
+  .tags-strike{display:flex;flex-wrap:wrap;gap:7px;}
+  .tag-s{
+    display:inline-flex;align-items:center;
+    font-size:12.5px;color:var(--clay);
+    border:1px solid #DDB9A9;border-radius:6px;padding:8px 12px;
+    position:relative;line-height:1.3;background:rgba(248,233,227,.35);
+  }
+  .tag-s::after{
+    content:"";position:absolute;left:8px;right:8px;top:50%;height:1px;
+    background:var(--clay);opacity:.7;
+  }
+  .advice{
+    display:flex;gap:10px;
+    padding:15px;border-radius:14px;
+    background:var(--deep);color:#F2EEE0;
+    font-size:12.5px;line-height:1.85;margin:4px 0 18px;
+  }
+  .advice b{color:#F4D98C;font-weight:600;}
+  .advice svg{flex:0 0 16px;margin-top:2px;opacity:.7;}
+
+  /* ---------- 测评 ---------- */
+  #s-assess{padding:8px 22px 40px;}
+  .as-progress{height:3px;background:#E7E2D4;border-radius:3px;overflow:hidden;margin:14px 0 22px;}
+  .as-progress i{display:block;height:100%;background:var(--deep);border-radius:3px;transition:width .35s cubic-bezier(.22,.9,.24,1);}
+  .as-who{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:10px;letter-spacing:1.4px;padding:4px 10px;border-radius:999px;margin-bottom:13px;
+  }
+  .as-who.parent{background:var(--clay-soft);color:var(--clay);}
+  .as-who.child{background:var(--jade-soft);color:var(--jade);}
+  .as-who i{width:4px;height:4px;border-radius:50%;background:currentColor;}
+  .as-q{font-family:var(--serif);font-size:22px;line-height:1.5;margin:0 0 9px;font-weight:600;letter-spacing:-.2px;}
+  .as-hint{font-size:11.5px;line-height:1.75;color:var(--ink3);margin:0 0 22px;min-height:20px;}
+  .as-opts{display:flex;flex-direction:column;gap:9px;}
+  .as-opt{
+    display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+    padding:14px 15px;border-radius:13px;border:1px solid var(--line);
+    background:var(--card);font-size:14px;line-height:1.5;color:var(--ink);
+    transition:transform .12s,border-color .2s,background .2s;
+  }
+  .as-opt:active{transform:scale(.99);}
+  .as-opt.on{background:var(--deep);border-color:var(--deep);color:#F7F5EC;}
+  .as-opt .k{
+    flex:0 0 20px;width:20px;height:20px;border-radius:50%;
+    display:grid;place-items:center;font-size:9.5px;
+    background:#F0EBDD;color:var(--ink2);
+  }
+  .as-opt.on .k{background:rgba(255,255,255,.16);color:#F7F5EC;}
+  .as-foot{font-size:10.5px;color:var(--ink3);line-height:1.7;margin-top:20px;}
+  .as-intro-kv{display:flex;flex-direction:column;gap:9px;margin:20px 0 24px;}
+  .as-intro-kv div{
+    display:flex;gap:10px;padding:13px 14px;border-radius:12px;
+    background:var(--card);border:1px solid var(--line);
+  }
+  .as-intro-kv b{flex:0 0 auto;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:999px;height:fit-content;}
+  .as-intro-kv b.p{background:var(--clay-soft);color:var(--clay);}
+  .as-intro-kv b.c{background:var(--jade-soft);color:var(--jade);}
+  .as-intro-kv span{font-size:11.5px;line-height:1.7;color:var(--ink2);}
+  .as-handoff{text-align:center;padding:40px 0 0;}
+  .as-handoff .ho-ico{
+    width:58px;height:58px;border-radius:50%;margin:0 auto 18px;
+    background:var(--jade-soft);color:var(--jade);display:grid;place-items:center;
+  }
+  .as-handoff h2{font-family:var(--serif);font-size:22px;margin:0 0 10px;font-weight:600;}
+  .as-handoff p{font-size:12.5px;line-height:1.85;color:var(--ink2);margin:0 auto 24px;max-width:290px;}
+
+  /* 追问 */
+  .as-why{
+    font-size:11.5px;line-height:1.8;color:#3F6152;
+    background:var(--jade-soft);border:1px solid #D8EADF;
+    border-radius:14px;padding:11px 13px;margin-bottom:14px;
+  }
+  .as-why b{font-weight:600;color:var(--jade);}
+  .fu-text{
+    width:100%;height:64px;margin-top:12px;
+    border:1px solid var(--line);border-radius:14px;
+    padding:11px 13px;font-size:13px;line-height:1.7;
+    background:#fff;resize:none;font-family:inherit;color:var(--ink);
+  }
+  .fu-text:focus{outline:none;border-color:var(--jade);box-shadow:0 0 0 3px rgba(27,110,88,.08);}
+  .fu-big{height:110px;font-size:13.5px;line-height:1.8;}
+  .fu-tools{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .fu-mic{
+    display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
+    padding:8px 13px;border-radius:999px;border:1px solid #DCEDE3;
+    background:#F3FAF6;color:var(--jade);font-size:11.5px;font-weight:500;
+  }
+  .fu-mic.on{background:var(--jade);border-color:var(--jade);color:#fff;}
+  label.fu-mic{cursor:pointer;}
+  .fu-tools span{font-size:10.5px;color:var(--ink3);line-height:1.5;}
+  .fu-skip{color:var(--ink3);font-size:11px;text-decoration:underline;text-underline-offset:3px;}
+  .fu-preview{margin-top:10px;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff;}
+  .fu-preview img{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:0 0 auto;}
+  .fu-pv-meta{display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--ink3);line-height:1.5;}
+  .fu-pv-meta button{color:var(--clay);font-size:10.5px;text-decoration:underline;text-underline-offset:3px;text-align:left;}
+  .fu-next{margin-top:16px;}
+  .fu-row{padding:11px 0;border-bottom:1px solid var(--line2);}
+  .fu-row:last-child{border-bottom:0;}
+  .fu-q{font-size:11px;color:var(--ink3);line-height:1.7;margin-bottom:4px;}
+  .fu-a{font-size:12.5px;color:var(--ink);line-height:1.7;font-weight:500;}
+  .fu-a small{display:block;font-weight:400;color:var(--ink3);font-size:11px;margin-top:2px;}
+
+  .evid{border-top:1px solid var(--line2);}
+  .evid-row{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line2);}
+  .evid-k{flex:0 0 62px;font-size:10px;letter-spacing:.6px;color:var(--ink3);padding-top:2px;}
+  .evid-v{font-size:11.5px;line-height:1.75;color:var(--ink2);}
+  .evid-v b{color:var(--ink);font-weight:500;}
+
+  /* ---------- recommend ---------- */
+  .rec-head{padding:18px 0 0;}
+  .rec-title{font-family:var(--serif);font-size:23px;line-height:1.4;margin:0 0 12px;font-weight:600;}
+  .rec-note{
+    display:flex;gap:9px;
+    background:var(--amber-soft);border:1px solid #EFDFB4;
+    border-radius:12px;padding:12px 13px;margin-bottom:18px;
+    font-size:11.5px;line-height:1.75;color:#6B5522;
+  }
+  .rec-note b{color:#8A5A12;}
+
+  .p-card{
+    position:relative;
+    background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:15px;margin-bottom:12px;
+    transition:all .2s;
+  }
+  .p-card.gray{background:#F3F0E7;border-color:#E3DED0;}
+  .p-card.gray .p-name,
+  .p-card.gray .p-price b{color:#8B8D84;}
+  .p-top{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+  .avatar{
+    width:26px;height:26px;border-radius:8px;flex:0 0 auto;
+    display:grid;place-items:center;
+    font-family:var(--serif);font-size:12px;font-weight:600;
+    color:#F6F2E6;letter-spacing:0;
+  }
+  .p-org{font-size:11.5px;color:var(--ink2);letter-spacing:.3px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .match{
+    margin-left:auto;font-size:10px;letter-spacing:.5px;
+    color:var(--jade);background:var(--jade-soft);border-radius:999px;padding:4px 9px;
+    white-space:nowrap;
+  }
+  .match.rank1{background:#E4EFE5;color:#175E45;font-weight:600;}
+  .p-card.gray .match{color:#8B8D84;background:#E8E4D8;}
+  .p-name{
+    font-family:var(--serif);font-size:17.5px;line-height:1.45;font-weight:600;
+    margin:0 0 4px;letter-spacing:.1px;
+  }
+  .p-cat{font-size:11px;color:var(--ink3);margin:0 0 12px;letter-spacing:.5px;}
+  .p-price{display:flex;align-items:baseline;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .p-price b{font-size:21px;font-weight:600;letter-spacing:-.3px;font-variant-numeric:tabular-nums;}
+  .p-price b i{font-size:12px;font-style:normal;font-weight:400;margin-right:1px;}
+  .p-price s{font-size:11.5px;color:var(--ink3);}
+  .p-price .save{font-size:10px;color:var(--clay);border:1px solid #E3C4B6;border-radius:4px;padding:2px 5px;}
+  .p-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;}
+  .p-tags span{
+    font-size:10.5px;color:var(--ink2);
+    background:#F4F0E4;border-radius:5px;padding:5px 7px;line-height:1;
+  }
+  .p-card.gray .p-tags span{background:#EAE6DA;color:#8B8D84;}
+  .p-reason{
+    font-size:12px;line-height:1.8;color:var(--ink2);
+    border-left:2px solid #DCD5C3;padding-left:10px;margin:0 0 12px;
+  }
+  .p-promo{
+    display:flex;align-items:center;gap:6px;
+    font-size:11px;color:#8A5A12;background:#FBF3E0;border-radius:7px;padding:7px 9px;margin-bottom:12px;
+    line-height:1.5;
+  }
+  .p-card.gray .p-promo{background:#EDE8DA;color:#8B8D84;}
+  .p-foot{display:flex;align-items:center;gap:10px;}
+  .p-rate{
+    display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink2);
+    text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line);
+  }
+  .p-rate svg{color:var(--amber);}
+  .p-btn{
+    margin-left:auto;height:36px;padding:0 16px;border-radius:9px;
+    background:var(--deep);color:#F7F5EC;font-size:12.5px;font-weight:600;letter-spacing:.3px;
+  }
+  .p-btn:disabled{background:#D8D4C8;color:#F2F0E8;cursor:not-allowed;}
+  .risk-badge{
+    display:flex;align-items:flex-start;gap:6px;
+    font-size:11px;line-height:1.6;color:var(--clay);
+    background:rgba(248,233,227,.7);border-radius:8px;padding:8px 10px;margin-bottom:12px;
+  }
+  .risk-badge svg{flex:0 0 13px;margin-top:1px;}
+  .rec-foot{padding:8px 0 4px;}
+  .rec-foot .btn.link{width:100%;}
+
+  /* ---------- success ---------- */
+  #s-success{padding-top:0;}
+  .succ-wrap{padding:34px 0 0;text-align:center;}
+  .succ-ico{
+    width:66px;height:66px;border-radius:50%;margin:0 auto 20px;
+    background:var(--jade-soft);display:grid;place-items:center;color:var(--jade);
+    animation:pop .5s cubic-bezier(.22,1.2,.3,1);
+  }
+  @keyframes pop{0%{transform:scale(.4);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  .succ-title{font-family:var(--serif);font-size:24px;margin:0 0 8px;font-weight:600;}
+  .succ-sub{font-size:12.5px;color:var(--ink2);line-height:1.8;margin:0 0 20px;}
+  .order-card{
+    text-align:left;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:16px;margin-bottom:14px;
+  }
+  .order-row{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:7px 0;}
+  .order-row span:first-child{color:var(--ink3);flex:0 0 auto;}
+  .order-row span:last-child{color:var(--ink);text-align:right;line-height:1.6;}
+  .order-row.total{border-top:1px dashed var(--line);margin-top:6px;padding-top:12px;}
+  .order-row.total span:last-child{font-family:var(--serif);font-size:19px;font-weight:600;}
+  .sync-note{
+    display:flex;align-items:center;gap:7px;justify-content:center;
+    font-size:11px;color:var(--ink3);margin-bottom:20px;
+  }
+  .sync-note i{width:5px;height:5px;border-radius:50%;background:var(--jade);animation:blink 1.6s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+  /* ---------- growth ---------- */
+  .prof-card{
+    background:var(--deep);color:#F3EFE1;
+    border-radius:18px;padding:18px;margin:18px 0 16px;position:relative;overflow:hidden;
+  }
+  .prof-card::after{
+    content:"";position:absolute;right:-40px;top:-40px;width:130px;height:130px;border-radius:50%;
+    border:1px solid rgba(244,217,140,.18);
+  }
+  .prof-label{font-size:10.5px;letter-spacing:2px;color:rgba(243,239,225,.55);margin:0 0 10px;}
+  .prof-name{font-family:var(--serif);font-size:20px;margin:0 0 12px;font-weight:600;}
+  .prof-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;position:relative;z-index:1;}
+  .prof-chips span{
+    font-size:10.5px;padding:5px 9px;border-radius:999px;
+    background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);color:#EDE8D8;
+  }
+  .prof-bar{height:3px;background:rgba(255,255,255,.14);border-radius:3px;overflow:hidden;margin-bottom:8px;}
+  .prof-bar i{display:block;height:100%;background:#E5C979;border-radius:3px;transition:width .8s ease;}
+  .prof-foot{display:flex;justify-content:space-between;font-size:10.5px;color:rgba(243,239,225,.65);}
+
+  .tl{margin-top:6px;}
+  .tl-item{
+    display:flex;gap:13px;padding-bottom:20px;position:relative;
+  }
+  .tl-item:last-child{padding-bottom:0;}
+  .tl-item::before{
+    content:"";position:absolute;left:5.5px;top:16px;bottom:2px;width:1px;background:var(--line);
+  }
+  .tl-item:last-child::before{display:none;}
+  .tl-dot{
+    flex:0 0 12px;width:12px;height:12px;border-radius:50%;margin-top:4px;
+    background:var(--card);border:1.5px solid var(--jade);position:relative;z-index:1;
+  }
+  .tl-dot.clay{border-color:var(--clay);}
+  .tl-dot.amber{border-color:var(--amber);background:var(--amber);}
+  .tl-body{flex:1;min-width:0;}
+  .tl-date{font-size:10px;letter-spacing:1px;color:var(--ink3);margin-bottom:4px;}
+  .tl-title{font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.5;margin:0 0 4px;}
+  .tl-desc{font-size:11.5px;color:var(--ink2);line-height:1.75;margin:0;}
+  .tl-desc b{font-weight:600;color:var(--ink);}
+  .revisit{
+    margin-top:6px;padding:16px;border-radius:16px;
+    background:linear-gradient(180deg,#FBF6E7,#FAF4E2);border:1px solid #EADFBE;
+  }
+  .revisit h3{font-family:var(--serif);font-size:15.5px;margin:0 0 6px;font-weight:600;}
+  .revisit p{font-size:11.5px;color:#7A6A3C;line-height:1.75;margin:0 0 12px;}
+  .revisit .btn{height:42px;font-size:13px;background:#8A6A1E;color:#FFF8E4;box-shadow:none;}
+  .empty-note{
+    text-align:center;font-size:11.5px;color:var(--ink3);line-height:1.8;
+    padding:16px;border:1px dashed var(--line);border-radius:12px;
+  }
+  .section-label{
+    font-size:11px;letter-spacing:1.6px;color:var(--ink3);margin:22px 0 12px;
+  }
+
+  /* ---------- aftersale ---------- */
+  .order-pick{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    border:1px solid var(--line);background:var(--card);border-radius:12px;
+    padding:12px;margin-bottom:18px;
+  }
+  .order-pick .op-main{flex:1;min-width:0;}
+  .order-pick b{display:block;font-size:13px;font-weight:600;margin-bottom:3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .order-pick small{font-size:10.5px;color:var(--ink3);}
+  .order-pick svg{flex:0 0 auto;color:var(--ink3);}
+  .file-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+  .file-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11px;color:var(--ink2);background:#F1EDE1;
+    border-radius:7px;padding:6px 9px;
+  }
+  .file-chip button{font-size:14px;line-height:1;color:var(--ink3);padding:0 0 0 2px;}
+  textarea.control{
+    height:auto;min-height:96px;padding:13px 14px;line-height:1.7;resize:none;
+    border-radius:12px;font-size:14px;
+  }
+  .mic-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .mic-inline{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:11.5px;color:var(--ink2);
+    border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:var(--card);
+  }
+  .mic-inline.rec{color:var(--clay);border-color:#E3C4B6;background:var(--clay-soft);}
+  .ticket{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:10px;
+  }
+  .ticket-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .ticket-top b{font-size:12px;font-weight:600;letter-spacing:.5px;}
+  .status{
+    margin-left:auto;font-size:10px;padding:3px 8px;border-radius:999px;
+    background:var(--amber-soft);color:#8A5A12;white-space:nowrap;
+  }
+  .status.doing{background:#E8EEF6;color:#3A5B84;}
+  .status.done{background:var(--jade-soft);color:var(--jade);}
+  .ticket-desc{font-size:11.5px;color:var(--ink2);line-height:1.75;margin:0 0 10px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .ticket-steps{display:flex;align-items:center;gap:4px;}
+  .ticket-steps i{
+    flex:1;height:2px;border-radius:2px;background:var(--line);
+  }
+  .ticket-steps i.on{background:var(--jade);}
+  .ticket-steps span{font-size:10px;color:var(--ink3);white-space:nowrap;}
+
+  /* ---------- sheet ---------- */
+  .mask{
+    position:fixed;inset:0;background:rgba(20,24,20,.42);
+    backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .26s;z-index:40;
+  }
+  .mask.on{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:fixed;left:50%;bottom:0;width:100%;max-width:430px;
+    transform:translate(-50%,102%);
+    background:var(--paper);
+    border-radius:20px 20px 0 0;
+    z-index:41;
+    transition:transform .34s cubic-bezier(.22,.9,.24,1);
+    max-height:86dvh;
+    display:flex;flex-direction:column;
+    padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -20px 50px -20px rgba(20,30,20,.4);
+  }
+  .sheet.on{transform:translate(-50%,0);}
+  .sheet-grip{width:36px;height:4px;border-radius:4px;background:#D9D3C3;margin:9px auto 0;flex:0 0 auto;}
+  .sheet-head{
+    padding:14px 20px 12px;display:flex;align-items:flex-start;gap:10px;flex:0 0 auto;
+  }
+  .sheet-head h3{font-family:var(--serif);font-size:18px;margin:0;font-weight:600;line-height:1.4;}
+  .sheet-head p{margin:4px 0 0;font-size:11.5px;color:var(--ink3);line-height:1.6;}
+  .sheet-close{margin-left:auto;flex:0 0 auto;color:var(--ink3);padding:2px;}
+  .sheet-body{overflow-y:auto;padding:0 20px 22px;overscroll-behavior:contain;}
+  .sheet-body .btn{margin-top:14px;}
+
+  .rv{display:flex;gap:10px;padding:13px 0;border-bottom:1px solid var(--line2);}
+  .rv:last-child{border-bottom:none;}
+  .rv-av{
+    flex:0 0 30px;width:30px;height:30px;border-radius:50%;
+    background:#E9E3D2;display:grid;place-items:center;
+    font-size:11px;color:var(--ink2);
+  }
+  .rv-main{flex:1;min-width:0;}
+  .rv-top{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+  .rv-user{font-size:11px;color:var(--ink2);}
+  .stars{display:flex;gap:1px;color:var(--amber);font-size:9.5px;letter-spacing:0;margin-left:auto;}
+  .stars .off{color:#DAD4C4;}
+  .rv-text{font-size:12px;line-height:1.8;color:var(--ink);margin:0 0 6px;}
+  .rv-date{font-size:10px;color:var(--ink3);}
+  .rv-sum{
+    display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;
+    background:var(--card);border:1px solid var(--line);margin-bottom:6px;
+  }
+  .rv-sum b{font-family:var(--serif);font-size:24px;font-weight:600;line-height:1;}
+  .rv-sum small{font-size:10.5px;color:var(--ink3);}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:104px;transform:translate(-50%,14px);
+    background:rgba(24,30,25,.93);color:#F4F1E6;
+    font-size:12.5px;line-height:1.6;padding:11px 16px;border-radius:10px;
+    max-width:320px;text-align:center;z-index:60;
+    opacity:0;pointer-events:none;transition:all .3s cubic-bezier(.22,.9,.24,1);
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0);}
+
+  /* ---------- desktop ---------- */
+  @media (min-width:900px){
+    .stage{padding:40px 0;gap:0;}
+    .app{
+      height:min(880px, 94dvh);
+      border-radius:40px;
+      box-shadow:
+        0 0 0 1px rgba(22,48,42,.08),
+        0 2px 6px rgba(22,48,42,.05),
+        0 46px 90px -34px rgba(22,48,42,.42);
+      border:9px solid #14170F;
+      overflow:hidden;
+    }
+    .stage-note{
+      display:block;position:fixed;left:56px;top:50%;transform:translateY(-50%);
+      width:270px;
+    }
+    .sn-brand{font-family:var(--serif);font-size:26px;letter-spacing:6px;font-weight:600;}
+    .sn-brand small{display:block;font-family:var(--sans);font-size:8.5px;letter-spacing:2.4px;color:var(--ink3);margin-top:5px;}
+    .sn-desc{font-size:12px;line-height:1.95;color:var(--ink2);margin:18px 0 0;}
+    .sn-list{list-style:none;padding:0;margin:22px 0 0;border-top:1px solid rgba(22,48,42,.1);}
+    .sn-list li{
+      font-size:11.5px;color:var(--ink2);line-height:1.7;
+      padding:10px 0;border-bottom:1px solid rgba(22,48,42,.07);
+      display:flex;gap:8px;
+    }
+    .sn-list li b{font-family:var(--serif);color:var(--clay);font-weight:600;}
+    .screen::-webkit-scrollbar{width:0;}
+  }
+  @media (min-width:1280px){
+    .stage{gap:0;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001s !important;transition-duration:.001s !important;}
+  }
+  /* ---------- v4 建档引导 ---------- */
+  .form-guide{
+    display:flex;align-items:center;gap:9px;margin:0 0 16px;
+    padding:9px 12px;border-radius:10px;background:var(--card);border:1px solid var(--line);
+  }
+  .form-guide svg{flex:0 0 14px;color:var(--clay);}
+  .form-guide .fg-t{font-size:10.5px;line-height:1.6;color:var(--ink2);flex:1;}
+  .form-guide .fg-t b{color:var(--ink);font-weight:600;}
+  .fg-bar{flex:0 0 44px;height:2px;background:#E7E2D4;border-radius:2px;overflow:hidden;}
+  .fg-bar i{display:block;height:100%;width:0;background:var(--clay);border-radius:2px;transition:width .3s;}
+
+  /* ---------- v4 避雷甄选中 ---------- */
+  .diag-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 30px;text-align:center;}
+  .diag-kicker{font-size:10px;letter-spacing:2.6px;color:var(--clay);margin:0 0 26px;}
+  .fx{position:relative;width:170px;height:120px;margin-bottom:8px;}
+  .fx .bolt{
+    position:absolute;left:50%;top:0;transform:translateX(-50%);
+    color:var(--deep);
+  }
+  .fx .mines{position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:center;gap:13px;}
+  .mine{
+    width:15px;height:15px;border-radius:50%;
+    background:var(--clay);opacity:.9;position:relative;
+    box-shadow:0 0 0 3px rgba(168,69,43,.12);
+  }
+  .mine::after{
+    content:"";position:absolute;left:50%;top:-5px;width:1px;height:5px;
+    background:var(--clay);transform:translateX(-50%);
+  }
+  .fx.run .mine{animation:minePop 1.5s cubic-bezier(.3,.8,.4,1) both;}
+  .fx.run .mine:nth-child(1){animation-delay:0s}
+  .fx.run .mine:nth-child(2){animation-delay:.24s}
+  .fx.run .mine:nth-child(3){animation-delay:.48s}
+  .fx.run .mine:nth-child(4){animation-delay:.72s}
+  .fx.run .mine:nth-child(5){animation-delay:.96s}
+  @keyframes minePop{
+    0%{transform:scale(1);opacity:.9;box-shadow:0 0 0 3px rgba(168,69,43,.12)}
+    28%{transform:scale(1.55);opacity:1;box-shadow:0 0 0 8px rgba(168,69,43,.16)}
+    46%{transform:scale(.6);opacity:0;box-shadow:0 0 0 14px rgba(168,69,43,0)}
+    100%{transform:scale(.6);opacity:0}
+  }
+  .fx.run .bolt{animation:boltStrike .5s ease-in-out infinite alternate;}
+  @keyframes boltStrike{from{transform:translateX(-50%) translateY(0);opacity:.85}to{transform:translateX(-50%) translateY(3px);opacity:1}}
+  .diag-title{font-family:var(--serif);font-size:23px;margin:14px 0 10px;font-weight:600;}
+  .diag-sub{font-size:11.5px;line-height:1.8;color:var(--ink3);margin:0 0 26px;min-height:42px;}
+  .diag-bar{width:170px;height:3px;border-radius:3px;background:#E7E2D4;overflow:hidden;}
+  .diag-bar i{display:block;height:100%;width:0;background:var(--clay);border-radius:3px;transition:width .18s linear;}
+  .diag-count{font-size:9.5px;letter-spacing:.6px;color:var(--ink3);margin:12px 0 0;font-variant-numeric:tabular-nums;}
+
+  /* ---------- v4 报告雷达 ---------- */
+  .radar-box{display:flex;justify-content:center;padding:4px 0 2px;}
+  .radar-read{font-size:11.5px;line-height:1.9;color:var(--ink2);margin-top:6px;}
+  .radar-read b{color:var(--ink);font-weight:600;}
+  .trait-row{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--line2);}
+  .trait-row:last-child{border-bottom:0;}
+  .trait-k{flex:0 0 76px;font-size:11px;color:var(--ink3);padding-top:1px;}
+  .trait-v{font-size:12px;line-height:1.7;color:var(--ink);font-weight:500;}
+  .trait-v small{display:block;font-weight:400;font-size:10.5px;color:var(--ink3);margin-top:2px;line-height:1.6;}
+  .trait-tag{display:inline-block;font-size:9.5px;padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:1px;}
+  .trait-tag.hi{background:var(--jade-soft);color:var(--jade);}
+  .trait-tag.mid{background:var(--amber-soft);color:#8A5A12;}
+  .trait-tag.lo{background:var(--clay-soft);color:var(--clay);}
+
+  /* ---------- v4 推荐 ---------- */
+  .rec-data{
+    min-height:calc(100vh - 140px);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:0 24px;
+  }
+  .rec-data .rd-k{font-size:10px;letter-spacing:2.4px;color:var(--ink3);margin-bottom:14px;}
+  .rec-data .rd-n{font-family:var(--serif);font-size:44px;line-height:1;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-1px;}
+  .rec-data .rd-l{font-size:11px;color:var(--ink3);margin-top:9px;letter-spacing:.4px;}
+  .rec-data .rd-seq{
+    margin-top:22px;font-size:11px;color:var(--ink2);
+    padding:6px 13px;border-radius:999px;background:var(--card);border:1px solid var(--line);
+  }
+  .rec-data .rd-seq b{color:var(--clay);font-weight:600;}
+  .rec-data .rd-bar{width:150px;height:2px;background:#E7E2D4;border-radius:2px;overflow:hidden;margin-top:26px;}
+  .rec-data .rd-bar i{display:block;height:100%;width:0;background:var(--deep);animation:rdFill 1.15s cubic-bezier(.3,.8,.3,1) forwards;}
+  @keyframes rdFill{to{width:100%}}
+  .layer-h{
+    display:flex;align-items:center;gap:8px;margin:20px 0 10px;
+    font-size:10.5px;letter-spacing:1.2px;color:var(--ink2);
+  }
+  .layer-h::after{content:"";flex:1;height:1px;background:var(--line);}
+  .layer-h:first-child{margin-top:2px;}
+  .layer-h b{font-weight:600;color:var(--ink);}
+  .layer-h i{
+    font-style:normal;font-size:9px;letter-spacing:0;padding:2px 6px;border-radius:999px;
+    background:var(--jade-soft);color:var(--jade);
+  }
+  .p-layer{font-size:9px;letter-spacing:.5px;padding:2px 7px;border-radius:999px;background:#EFEADC;color:var(--ink3);}
+  .p-trace{
+    font-size:10px;line-height:1.7;color:var(--ink3);
+    border-left:2px solid var(--line);padding-left:8px;margin:0 0 10px;
+  }
+  .risk-fold{margin-top:16px;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden;}
+  .risk-fold summary{
+    list-style:none;cursor:pointer;padding:12px 14px;font-size:11px;color:var(--ink2);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .risk-fold summary::-webkit-details-marker{display:none;}
+  .risk-fold summary::after{content:"+";font-size:13px;color:var(--ink3);}
+  .risk-fold[open] summary::after{content:"−";}
+  .risk-item{padding:10px 14px;border-top:1px solid var(--line2);}
+  .risk-item b{font-size:11.5px;font-weight:500;display:block;margin-bottom:3px;}
+  .risk-item span{font-size:10.5px;line-height:1.65;color:var(--ink3);display:block;}
+  .rule-check{margin-top:18px;border-top:1px solid var(--line);padding-top:12px;}
+  .rule-check summary{list-style:none;cursor:pointer;font-size:10px;letter-spacing:.8px;color:var(--ink3);display:flex;justify-content:space-between;}
+  .rule-check summary::-webkit-details-marker{display:none;}
+  .rule-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:10.5px;color:var(--ink2);}
+  .rule-row i{
+    flex:0 0 14px;width:14px;height:14px;border-radius:50%;display:grid;place-items:center;
+    font-style:normal;font-size:8px;background:var(--jade-soft);color:var(--jade);
+  }
+  .rule-row.bad i{background:var(--clay-soft);color:var(--clay);}
+  .rule-row span{margin-left:auto;color:var(--ink3);font-size:9.5px;}
+  .refine-box textarea{
+    width:100%;height:96px;resize:none;border:1px solid var(--line);border-radius:12px;
+    padding:12px 13px;font-size:13px;line-height:1.7;background:var(--card);color:var(--ink);
+    font-family:inherit;
+  }
+  .refine-box textarea:focus{outline:none;border-color:var(--deep);}
+  .refine-mic{display:flex;align-items:center;gap:8px;margin:10px 0 16px;font-size:10.5px;color:var(--ink3);}
+  .refine-mic button{
+    display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);font-size:11px;color:var(--ink2);
+  }
+  .refine-mic button.on{background:var(--clay-soft);border-color:var(--clay);color:var(--clay);}
+  /* ---------- v4.1 朗读 / 返回 / 换方向 ---------- */
+  .login-seq{
+    display:inline-flex;align-items:center;gap:5px;margin-top:16px;
+    font-size:10.5px;color:var(--ink2);padding:6px 12px;border-radius:999px;
+    background:var(--card);border:1px solid var(--line);
+  }
+  .login-seq b{color:var(--clay);font-weight:600;font-variant-numeric:tabular-nums;}
+  .ver{font-size:9.5px;color:var(--ink3);letter-spacing:.4px;margin-top:8px;}
+  .ve-again{
+    display:inline-block;margin-top:6px;font-size:10px;color:var(--clay);
+    text-decoration:underline;text-underline-offset:2px;
+  }
+  .stale-tip{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    margin-top:12px;padding:9px 12px;border-radius:10px;
+    background:var(--amber-soft);color:#8A5A12;font-size:10.5px;line-height:1.6;
+  }
+  .stale-tip button{color:var(--clay);text-decoration:underline;text-underline-offset:2px;font-size:10.5px;white-space:nowrap;}
+  .as-q-row{display:flex;align-items:flex-start;gap:10px;}
+  .as-q-row .as-q{flex:1;}
+  .speak{
+    flex:0 0 34px;width:34px;height:34px;border-radius:50%;
+    display:grid;place-items:center;margin-top:3px;
+    border:1px solid var(--line);background:var(--card);color:var(--ink2);
+  }
+  .speak.on{background:var(--jade-soft);border-color:var(--jade);color:var(--jade);}
+  .as-nav{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-top:26px;padding-top:14px;border-top:1px solid var(--line2);
+  }
+  .as-back{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink2);padding:8px 0;}
+  .as-back[disabled]{opacity:.32;}
+  .as-nav span{font-size:10px;color:var(--ink3);letter-spacing:.4px;}
+  .switch-line{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line2);
+  }
+  .switch-line .cur{font-size:10.5px;color:var(--ink3);}
+  .switch-line .cur b{color:var(--ink);font-weight:500;}
+  .switch-line button{font-size:10.5px;color:var(--clay);text-decoration:underline;text-underline-offset:3px;padding:2px 0;}
+  /* ---------- v5 视觉刷新：更轻、更亲和的教育产品气质 ---------- */
+  :root{
+    --paper:#FAF8F2;
+    --card:#FFFFFF;
+    --ink:#1F2A24;
+    --ink2:#5B6A61;
+    --ink3:#8E9C94;
+    --line:#E9E4D7;
+    --line2:#F2EEE3;
+    --deep:#1B6E58;
+    --jade:#1B6E58;
+    --jade-soft:#E8F3ED;
+    --clay:#C8573A;
+    --clay-soft:#FBEDE6;
+    --amber:#B98A22;
+    --amber-soft:#FDF5E2;
+    --serif:"PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,-apple-system,sans-serif;
+    --shadow:0 10px 30px -18px rgba(27,58,46,.35);
+    --shadow-lg:0 18px 44px -24px rgba(27,58,46,.42);
+  }
+  body{background:
+    radial-gradient(760px 420px at 50% 0%, #EAF4EC 0%, rgba(234,244,236,0) 64%),
+    #EFEBE0;}
+  .app{
+    background:
+      radial-gradient(120% 32% at 50% 0%, #F1F8F2 0%, rgba(241,248,242,0) 62%),
+      var(--paper);
+    box-shadow:0 30px 80px -40px rgba(31,42,36,.35);
+  }
+  .appbar{
+    background:rgba(250,248,242,.82);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+  }
+  .appbar.solid{border-bottom-color:var(--line2);}
+  .bar-title,.bar-brand{font-family:var(--sans);font-weight:600;letter-spacing:0;}
+  .bar-brand svg{color:var(--jade);}
+  .iconbtn:active{background:#EDE8DC;}
+
+  /* 标题与正文 */
+  .landing-h1,.rec-title,.as-q,.as-handoff h2,.block-h,.diag-title,.login-h1{
+    font-family:var(--sans);
+    font-weight:650;
+    letter-spacing:-.4px;
+  }
+  .landing-h1{font-size:33px;line-height:1.42;}
+  .landing-h1 em{
+    color:var(--jade);
+    background-image:linear-gradient(transparent 62%, #FBE7AE 62%);
+    background-repeat:no-repeat;
+    padding-bottom:2px;
+    white-space:normal;
+  }
+  .landing-sub{font-size:14px;line-height:1.9;color:var(--ink2);}
+  .kicker,.landing-kicker{letter-spacing:2.2px;color:var(--ink3);font-size:10px;}
+
+  /* 按钮 */
+  .btn{border-radius:16px;height:54px;font-size:15.5px;font-weight:600;}
+  .btn.primary{
+    background:linear-gradient(180deg,#1E7A62 0%,#19624F 100%);
+    color:#FAFDFA;
+    box-shadow:0 12px 26px -14px rgba(27,110,88,.55);
+  }
+  .btn.primary:active{filter:brightness(.97);}
+  .btn.primary:disabled{background:#D2D8D2;color:#F7F8F5;box-shadow:none;}
+  .btn.ghost{
+    border-radius:14px;height:48px;border-color:#E3DDCC;
+    background:rgba(255,255,255,.6);color:var(--ink2);
+  }
+  .btn.link{color:var(--jade);text-decoration-color:#BFD9CC;}
+
+  /* 卡片、表单 */
+  .card,.block,.dim,.p-card,.as-intro-kv div{
+    border-radius:18px;
+    border-color:var(--line);
+    box-shadow:var(--shadow);
+  }
+  .card{background:var(--card);}
+  .field > label{font-size:12.5px;letter-spacing:.3px;color:var(--ink2);}
+  .control{
+    height:52px;border-radius:14px;background:#fff;
+    border-color:#E5DFD0;font-size:15px;
+  }
+  .control:focus{border-color:var(--jade);box-shadow:0 0 0 4px rgba(27,110,88,.10);}
+  .mini-mic{border-radius:10px;color:var(--jade);}
+  .mini-mic:active{background:var(--jade-soft);}
+
+  /* 选项 chips */
+  .chips{gap:9px;}
+  .chip{
+    padding:10px 15px;border-radius:12px;
+    border-color:#E5DFD0;background:#fff;
+    font-size:13.5px;font-weight:500;color:var(--ink2);
+  }
+  .chip.on{
+    background:var(--jade-soft);
+    border-color:var(--jade);
+    color:var(--jade);
+    font-weight:600;
+    box-shadow:inset 0 0 0 1px var(--jade);
+  }
+
+  /* 测评 */
+  .as-who{
+    border-radius:999px;
+    padding:4px 10px;
+    font-size:10px;font-weight:600;letter-spacing:.3px;
+  }
+  .as-q{font-size:24px;line-height:1.48;margin-bottom:8px;}
+  .as-hint{font-size:12px;color:var(--ink3);}
+  .as-opts{gap:10px;}
+  .as-opt{
+    border-radius:16px;padding:16px;font-size:14.5px;
+    background:#fff;border-color:#E7E1D2;
+    box-shadow:0 4px 14px -12px rgba(31,42,36,.4);
+  }
+  .as-opt .k{
+    flex:0 0 24px;width:24px;height:24px;
+    background:#F5F1E4;color:var(--ink2);
+    font-size:10.5px;font-weight:600;
+  }
+  .as-opt.on{
+    background:#F2F9F5;
+    border-color:var(--jade);
+    color:var(--ink);
+    box-shadow:inset 0 0 0 1px var(--jade), 0 8px 20px -16px rgba(27,110,88,.6);
+  }
+  .as-opt.on .k{background:var(--jade);color:#fff;}
+  .as-opt.on::after{
+    content:"✓";
+    margin-left:auto;
+    color:var(--jade);
+    font-weight:700;
+    font-size:14px;
+  }
+  .speak{
+    width:38px;height:38px;flex:0 0 38px;
+    border-color:#DCEDE3;background:#F3FAF6;color:var(--jade);
+  }
+  .speak.on{background:var(--jade);border-color:var(--jade);color:#fff;}
+  .as-nav{border-top-color:var(--line2);}
+  .as-back{color:var(--jade);font-weight:500;}
+  .as-back[disabled]{opacity:.3;color:var(--ink3);}
+
+  /* 报告 */
+  .block-h{font-size:15.5px;}
+  .dims{gap:9px;}
+  .dim{padding:14px 14px 15px;background:#fff;}
+  .dim .v,.dim b{color:var(--jade);}
+  .radar-read{font-size:12px;line-height:1.95;color:var(--ink2);}
+  .trait-row{padding:12px 0;}
+  .trait-k{font-size:11px;}
+  .trait-v{font-size:12.5px;}
+  .trait-tag{border-radius:8px;font-weight:600;}
+
+  /* 推荐 */
+  .rec-title{font-size:24px;}
+  .layer-h{font-size:11px;}
+  .p-card{border-radius:20px;padding:17px;}
+  .p-name{font-size:15px;font-weight:600;}
+  .p-price b{color:var(--clay);}
+  .p-btn{border-radius:12px;background:var(--jade);color:#fff;font-weight:600;}
+  .p-rate{color:var(--ink2);}
+  .rule-row i{border-radius:6px;}
+
+  /* 底部 tab */
+  .tabbar{
+    background:rgba(255,255,255,.9);
+    border-top-color:var(--line2);
+  }
+  .tab-btn{color:var(--ink3);}
+  .tab-btn.on{color:var(--jade);}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="stage-note">
+    <div class="sn-brand">避雷针<small>LIGHTNING ROD · 家长端</small></div>
+    <p class="sn-desc">所有平台都在说「该报什么」，避雷针先说「别报什么」。这是 C 端完整演示：扫码进入 → 手机号登录 → 四个问题 → 避雷报告 → 匹配推荐 → 报名 → 成长档案。</p>
+    <ul class="sn-list">
+      <li><b>01</b><span>规则版报告，按年龄 + 期望实时生成</span></li>
+      <li><b>02</b><span>命中雷区的课程标灰，报名按钮不可点</span></li>
+      <li><b>03</b><span>语音建档支持浏览器识别，失败自动降级手动填</span></li>
+    </ul>
+  </aside>
+
+  <div class="app" id="app">
+    <header class="appbar" id="appbar" hidden>
+      <button class="iconbtn" id="backBtn" aria-label="返回">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="bar-title" id="barTitle">快速建档</span>
+      <div class="bar-right" id="barRight"></div>
+    </header>
+
+    <main class="viewport">
+
+      <!-- 1 扫码进入 -->
+      <section class="screen" id="s-landing">
+        <div class="landing-top">
+          <div class="brandline"><b>避雷针</b><span>LIGHTNING ROD</span></div>
+          <span class="scan-chip">从会场二维码进入</span>
+        </div>
+
+        <div class="landing-body">
+          <svg class="rod" viewBox="0 0 74 180" fill="none" stroke="#16302A" stroke-width="1.1" stroke-linecap="round">
+            <path d="M52 8v112" opacity=".55"/>
+            <path d="M52 120l-7 16h14l-7-16z" opacity=".8"/>
+            <path d="M52 136v20" opacity=".35"/>
+            <path d="M22 158c0-8 6-12 12-12M30 146c6 0 8 3 8 8" opacity=".3"/>
+            <circle cx="52" cy="8" r="2.4" fill="#A8452B" stroke="none" opacity=".8"/>
+          </svg>
+          <p class="landing-kicker"><i></i>8 分钟 · 4 个问题 · 不卖课</p>
+          <h1 class="landing-h1">所有平台都在说<br>该报什么，<br>我们先说<em>别报什么</em>。</h1>
+          <p class="landing-sub">不会给你的孩子打分，只告诉你现在最不该做的事——以及真正值得试的那一门。</p>
+          <div class="flowline">
+            <span>扫码</span><em>→</em><span>4 个问题</span><em>→</em><span>避雷报告</span><em>→</em><span>匹配课程</span>
+          </div>
+          <div class="manifesto">
+            <div><b>不按佣金排序</b><span>匹配度高低，和机构给平台多少提点无关</span></div>
+            <div><b>不隐藏雷区课</b><span>这个阶段不适合的，照样列出来、标灰、不可报名</span></div>
+            <div><b>不催你下单</b><span>先看报告，想清楚了再决定要不要报</span></div>
+          </div>
+        </div>
+
+        <div class="landing-cta">
+          <button class="btn primary" id="startBtn">开始诊断 →</button>
+          <div class="demo-note">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="flex:0 0 12px;margin-top:2px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+            <span><b>演示环境</b>：验证码固定 1234，报名不会真实扣款。手机号仅用于生成本地档案，不收集孩子姓名。</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 登录 -->
+      <section class="screen" id="s-login">
+        <div class="auth-head">
+          <p class="kicker">STEP 1 / 4</p>
+          <h1 class="h1">先留一个手机号</h1>
+          <p class="sub">只用来生成你自己的档案。不发广告，不要孩子姓名，也不要身份证。</p>
+          <div class="login-seq">避雷星第 <b id="loginSeq">8,241</b> 位家园入住</div>
+          <div class="ver">演示版 v4.9 · 简答 + 拍照识别 · 麦克风免重复授权</div>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="phone">手机号 <span class="req">*</span></label>
+            <input class="control" id="phone" type="tel" inputmode="numeric" maxlength="11" placeholder="11 位手机号" autocomplete="tel">
+          </div>
+          <div class="field">
+            <label for="code">验证码 <span class="req">*</span></label>
+            <div class="phone-row">
+              <input class="control code-input" id="code" type="tel" inputmode="numeric" maxlength="4" placeholder="四位数">
+              <button class="send-btn" type="button" id="sendCode">发送验证码</button>
+            </div>
+          </div>
+          <p class="err" id="loginErr"></p>
+          <button class="btn primary" type="submit" id="loginBtn" disabled>进入</button>
+        </form>
+
+        <div class="auth-alt">
+          <p class="tiny">演示环境：点「发送验证码」后 1234 会自动填入</p>
+        </div>
+
+        <div class="privacy">
+          <p>· 你的手机号只用于登录和查询订单。</p>
+          <p>· 报告基于建档信息 + 10 道测评题生成，可随时重做。</p>
+        </div>
+      </section>
+
+      <!-- 3 四个问题 -->
+      <section class="screen" id="s-form">
+        <div class="auth-head" style="padding-bottom:16px">
+          <p class="kicker">STEP 2 / 4 · 建档</p>
+          <h1 class="h1">四个问题，够用了</h1>
+          <p class="sub">答得越具体，报告越准。之后每次复诊都可以改。</p>
+        </div>
+
+        <button class="voice-card" id="voiceBtn" type="button">
+          <span class="voice-ico">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/></svg>
+          </span>
+          <span class="voice-txt">
+            <b>懒得填？点这里说一句</b>
+            <small id="voiceSub">例如「孩子六岁，在广州上一年级，想学游泳」</small>
+          </span>
+          <span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span>
+        </button>
+        <p class="voice-echo" id="voiceEcho" hidden></p>
+
+        <div style="height:20px"></div>
+
+        <form id="profileForm" novalidate>
+          <div class="field">
+            <label for="age">孩子年龄 <span class="req">*</span></label>
+            <div class="sel">
+              <select class="control" id="age">
+                <option value="">请选择</option>
+                <option>4</option><option>5</option><option>6</option><option>7</option>
+                <option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+              </select>
+              <svg class="sel-i" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="city">所在城市 <span class="req">*</span></label>
+            <div class="with-mic">
+              <input class="control inline-mic" id="city" type="text" maxlength="12" placeholder="例如 广州">
+              <button class="mini-mic" type="button" id="cityMic" aria-label="语音输入城市">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="grade">所在年级 <span class="req">*</span></label>
+            <div class="sel">
+              <select class="control" id="grade">
+                <option value="">请选择</option>
+                <option>幼儿园小班</option><option>幼儿园中班</option>
+                <option>幼儿园大班</option><option>一年级</option><option>二年级</option>
+                <option>三年级</option><option>四年级</option><option>五年级</option><option>六年级</option>
+              </select>
+              <svg class="sel-i" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="form-guide">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg>
+            <span class="fg-t" id="fgText"><b>输入越详细，避雷越准确</b></span>
+            <span class="fg-bar"><i id="fgBar"></i></span>
+          </div>
+
+          <div class="field">
+            <label>最希望孩子先解决什么 <span class="req">*</span> <span style="color:var(--ink3);font-weight:400;letter-spacing:0">单选</span></label>
+            <div class="chips" id="wants">
+              <button class="chip" type="button" data-w="数学提分">数学提分</button>
+              <button class="chip" type="button" data-w="英语启蒙">英语启蒙</button>
+              <button class="chip" type="button" data-w="逻辑思维">逻辑思维</button>
+              <button class="chip" type="button" data-w="编程">编程</button>
+              <button class="chip" type="button" data-w="游泳">游泳</button>
+              <button class="chip" type="button" data-w="美术">美术</button>
+              <button class="chip" type="button" data-w="书法">书法</button>
+              <button class="chip" type="button" data-w="作文">作文</button>
+              <button class="chip" type="button" data-w="专注力">专注力</button>
+            </div>
+            <p class="tiny" style="margin-top:8px">只选最想先解决的一个。选得多，反而看不出优先级。</p>
+          </div>
+
+          <p class="err" id="formErr"></p>
+          <button class="btn primary" type="submit">下一步：10 道测评题</button>
+          <p class="tiny" style="text-align:center;margin-top:12px">报告只给建议，不推荐具体机构</p>
+        </form>
+      </section>
+
+      <!-- 3.5 快速测评 · 家长卷 + 孩子卷 -->
+      <section class="screen" id="s-assess">
+        <div class="as-progress"><i id="asBar" style="width:0%"></i></div>
+        <div id="asBody"></div>
+      </section>
+
+      <!-- 4 诊断中 · 避雷甄选中 -->
+      <section class="screen" id="s-diagnosing">
+        <div class="diag-wrap">
+          <p class="diag-kicker">避 雷 甄 选 中</p>
+          <div class="fx" id="fx">
+            <svg class="bolt" width="46" height="58" viewBox="0 0 24 30" fill="currentColor"><path d="M13.5 0.5L3 17h6.2L8 29.5 20.5 11h-6.8L13.5.5z"/></svg>
+            <div class="mines">
+              <span class="mine"></span><span class="mine"></span><span class="mine"></span><span class="mine"></span><span class="mine"></span>
+            </div>
+          </div>
+          <h1 class="diag-title" id="diagLine">正在读取孩子的档案</h1>
+          <p class="diag-sub" id="diagSub">把年龄、年级、你自己的观察，和 12 万份同龄甄选记录放在一起看。</p>
+          <div class="diag-bar"><i id="diagBar"></i></div>
+          <p class="diag-count" id="diagCount">0 / 128,463 份甄选记录</p>
+        </div>
+      </section>
+
+      <!-- 5 避雷报告 -->
+      <section class="screen" id="s-report">
+        <div class="rep-head">
+          <p class="kicker">诊断结果 · 家长 6 题 + 孩子 4 题</p>
+          <div class="stale-tip" id="repStale" hidden>
+            <span>这是上一次的诊断结果</span>
+            <button type="button" id="repRedo">按本次重新测评 →</button>
+          </div>
+          <div class="rep-meta" id="repMeta"></div>
+          <h1 class="rep-title" id="repTitle">给 6 岁 · 一年级<br>的判断</h1>
+          <p class="rep-lede" id="repLede"></p>
+        </div>
+
+        <div class="dims" id="repDims"></div>
+
+        <div class="block">
+          <div class="block-h"><span class="dot green"></span>能力雷达<span class="n">6 个维度</span></div>
+          <div class="radar-box" id="repRadar"></div>
+          <div class="radar-read" id="repRadarRead"></div>
+        </div>
+
+        <div class="block">
+          <div class="block-h"><span class="dot"></span>孩子自身特性<span class="n">来自 10 道题</span></div>
+          <div id="repTraits"></div>
+        </div>
+
+        <div class="stage-note" id="repStage"></div>
+
+        <div class="block">
+          <div class="block-h"><span class="dot green"></span>测评依据<span class="n" id="repEvidN">家长 6 题 · 孩子 4 题</span></div>
+          <div class="evid" id="repEvid"></div>
+        </div>
+
+        <div class="block" id="repFollowBlock">
+          <div class="block-h"><span class="dot green"></span>家长补充<span class="n">3 题</span></div>
+          <div id="repFollow"></div>
+        </div>
+
+        <div class="block">
+          <div class="block-h"><span class="dot green"></span>逐项评估<span class="n" id="repCount"></span></div>
+          <div id="repEvals"></div>
+        </div>
+
+        <div class="block">
+          <div class="block-h"><span class="dot red"></span>现在不建议做的<span class="n" id="repAvoidCount"></span></div>
+          <div id="repAvoid"></div>
+        </div>
+
+        <div class="block">
+          <div class="block-h"><span class="dot green"></span>现在可以走的方向</div>
+          <div class="tags-green" id="repDirs"></div>
+        </div>
+
+        <div class="block">
+          <div class="block-h"><span class="dot red"></span>这一项先放一放</div>
+          <div class="tags-strike" id="repPost"></div>
+          <p class="tiny" style="margin-top:9px">划掉不是永远不碰，是「现在先放一放」。半年后复诊会重新判断。</p>
+        </div>
+
+        <div class="advice">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v2M4.9 6.9l1.4 1.4M3 14h2M19 14h2M17.7 8.3l1.4-1.4M9 18h6M10 21h4"/><circle cx="12" cy="13" r="4"/></svg>
+          <span id="repAdvice"></span>
+        </div>
+
+        <button class="btn primary" id="toRecBtn">看看匹配的课程 →</button>
+        <div style="height:10px"></div>
+        <button class="btn ghost" id="reportSwitch">想换个方向？重新选 →</button>
+        <p class="tiny" style="text-align:center;margin-top:11px">按匹配度排序，不按佣金排序</p>
+      </section>
+
+      <!-- 6 匹配推荐 -->
+      <section class="screen" id="s-recommend">
+        <div class="rec-data" id="recData">
+          <p class="rd-k">平 台 服 务 数 据</p>
+          <div class="rd-n" id="rdNum">128,463</div>
+          <div class="rd-l">累计甄选服务总次数</div>
+          <div class="rd-seq" id="rdSeq">避雷星第 <b>8,241</b> 位家园入住</div>
+          <div class="rd-bar"><i></i></div>
+        </div>
+
+        <div id="recMain" style="display:none">
+          <div class="rec-head">
+            <p class="kicker">为你甄选 · 固定 5 个</p>
+            <h1 class="rec-title" id="recTitle">3 个高优匹配 + 2 个备选</h1>
+            <div class="rec-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="flex:0 0 14px;margin-top:2px"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+              <span id="recWarn"></span>
+            </div>
+            <div class="switch-line">
+              <span class="cur">当前方向：<b id="recWant"></b></span>
+              <button id="switchBtn" type="button">换个方向重新甄选 →</button>
+            </div>
+          </div>
+
+          <div class="layer-h"><b>高优匹配</b><i>3 个</i></div>
+          <div id="recHigh"></div>
+
+          <div class="layer-h"><b>备选方案</b><i>2 个</i></div>
+          <div id="recRest"></div>
+
+          <div id="recRiskWrap"></div>
+
+          <div class="rec-foot">
+            <button class="btn ghost" id="refineBtn">需求补充 · 重新甄选</button>
+            <button class="btn link" id="toGrowthBtn">先不报，看看我的成长档案 →</button>
+          </div>
+
+          <details class="rule-check" id="ruleCheck">
+            <summary><span>规则落地自检 · 4 项指标</span><span id="ruleSum">全部达标</span></summary>
+            <div id="ruleRows"></div>
+          </details>
+          <p class="tiny" style="text-align:center;margin-top:12px">按匹配度排序，不按佣金排序 · 不提供「加载更多」</p>
+        </div>
+      </section>
+
+      <!-- 7 报名结果 -->
+      <section class="screen" id="s-success">
+        <div class="succ-wrap">
+          <div class="succ-ico">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+          </div>
+          <h1 class="succ-title">报名成功</h1>
+          <p class="succ-sub">订单已生成，机构会在 24 小时内联系你确认上课时间。</p>
+
+          <div class="order-card" id="orderCard"></div>
+          <div class="sync-note"><i></i><span>已同步到管理后台与供应商后台</span></div>
+
+          <button class="btn primary" id="toGrowthFromSucc">查看成长档案 →</button>
+          <div style="height:10px"></div>
+          <button class="btn ghost" id="backRecBtn">再看看别的课</button>
+          <p class="tiny" style="margin-top:16px">演示环境 · 未发生真实扣款</p>
+        </div>
+      </section>
+
+      <!-- 8 成长档案 -->
+      <section class="screen" id="s-growth">
+        <div class="prof-card" id="profCard"></div>
+
+        <div class="section-label">成长时间线</div>
+        <div class="tl" id="timeline"></div>
+
+        <div style="height:18px"></div>
+        <div class="revisit">
+          <h3>档案越用越准</h3>
+          <p>三个月后孩子会变，判断也会变。再答一次 4 个问题，报告会重新生成。</p>
+          <button class="btn" id="revisitBtn">下次复诊 · 重新诊断</button>
+        </div>
+      </section>
+
+      <!-- 9 售后 -->
+      <section class="screen" id="s-aftersale">
+        <div class="auth-head" style="padding:20px 0 16px">
+          <p class="kicker">售后 · 三端协同</p>
+          <h1 class="h1" style="font-size:24px">有事直接说</h1>
+          <p class="sub">工单会先到平台，需要机构配合时由平台转派，进度你随时能看到。</p>
+        </div>
+
+        <div id="asFormWrap">
+          <div class="field">
+            <label>关联订单</label>
+            <button class="order-pick" type="button" id="orderPick">
+              <div class="op-main">
+                <b id="orderPickName">还没有订单</b>
+                <small id="orderPickMeta">报名课程后可发起退费 / 投诉</small>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+
+          <div class="field">
+            <label>工单类型 <span class="req">*</span></label>
+            <div class="chips" id="ticketTypes">
+              <button class="chip on" type="button" data-t="退费">退费</button>
+              <button class="chip" type="button" data-t="投诉">投诉</button>
+              <button class="chip" type="button" data-t="咨询">咨询</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="mic-row">
+              <label for="ticketDesc" style="margin:0">问题描述 <span class="req">*</span></label>
+              <button class="mic-inline" type="button" id="ticketMic">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/></svg>
+                <span id="ticketMicTxt">语音描述</span>
+              </button>
+            </div>
+            <textarea class="control" id="ticketDesc" placeholder="说清楚发生了什么，比如：上到第二节课孩子不愿意去了，想问能不能退剩下的课时"></textarea>
+            <div class="file-chips" id="fileChips"></div>
+            <button class="btn ghost" type="button" id="addFile" style="margin-top:9px;height:40px;font-size:12.5px">+ 添加附件（演示）</button>
+          </div>
+
+          <p class="err" id="asErr"></p>
+          <button class="btn primary" id="submitTicket">提交工单</button>
+        </div>
+
+        <div class="section-label" id="ticketListLabel" hidden>我的工单</div>
+        <div id="ticketList"></div>
+      </section>
+
+    </main>
+
+    <nav class="tabbar" id="tabbar">
+      <button class="tab" data-tab="report">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11L10 22l9-12h-6.5L13 2z"/></svg>
+        <span>避雷报告</span><i class="tab-dot"></i>
+      </button>
+      <button class="tab" data-tab="growth">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a1 1 0 0 1 1-1h9l6 6v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M14 4v6h6M8 15h8M8 11h3"/></svg>
+        <span>成长档案</span><i class="tab-dot"></i>
+      </button>
+      <button class="tab" data-tab="aftersale">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"/><path d="M21 4v5h-5"/><path d="M12 8v4l2.5 1.5"/></svg>
+        <span>售后</span><i class="tab-dot"></i>
+      </button>
+    </nav>
+  </div>
+</div>
+
+<div class="mask" id="mask"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-grip"></div>
+  <div class="sheet-head">
+    <div>
+      <h3 id="sheetTitle">标题</h3>
+      <p id="sheetSub"></p>
+    </div>
+    <button class="sheet-close" id="sheetClose" aria-label="关闭">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const app = $('#app');
+const LS_KEY = 'blz_c_demo_v3';
+const LS_KEY_OLD = 'blz_c_demo_v2';
+
+const state = {
+  user: null,
+  phone: '',
+  profile: null,
+  report: null,
+  assessment: null,
+  orders: [],
+  tickets: [],
+  files: []
+};
+
+/* ---------- 演示数据 ---------- */
+const PRODUCTS = [
+  {
+    id: 'p1', org: '小海豚游泳俱乐部', name: '亲子水中适应课 · 8 次',
+    cat: '游泳', list: 4800, price: 3680, age: [4, 6], wants: ['游泳'],
+    tags: ['6 人小班', '32℃ 恒温泳池', '家长可下水'],
+    promo: '平台专属：赠 2 节亲子复训 + 泳镜',
+    rate: 4.9, cnt: 126,
+    reason: '{age} 岁最该解决的不是泳姿，是「敢把脸放进水里」。这门课前 3 节都在做这件事，不急着让孩子游给你看。',
+    reviews: [
+      { u: '138****2211', r: 5, d: '2026-10-18', c: '第一节课只是玩水、吹泡泡，我一开始还嫌慢。第四节课孩子自己把脸埋进去了，回家路上一直说下次还要来。' },
+      { u: '137****9042', r: 4, d: '2026-09-27', c: '教练会先问孩子怕不怕水，不硬来。就是周末场次太满，约课要提前两天。' }
+    ]
+  },
+  {
+    id: 'p2', org: '数感实验室', name: '生活里的数学游戏 · 12 次',
+    cat: '数学', list: 3980, price: 2980, age: [5, 7], wants: ['数学提分'],
+    tags: ['无书面作业', '教具带回家', '每班 8 人'],
+    promo: '平台专属：首次课不满意全额退',
+    rate: 4.7, cnt: 88,
+    reason: '你想解决数学，但 {age} 岁直接刷题会把「数学＝做题」钉死。这门课用称重、分水果、搭积木建立数感，比一百道口算更有用。',
+    reviews: [
+      { u: '186****3377', r: 5, d: '2026-10-06', c: '回家拿积木自己摆分合，说在「做实验」。作业只有口头说一说，家长不用陪着写。' },
+      { u: '135****1188', r: 4, d: '2026-08-30', c: '老师很会引导，但班里 8 个孩子水平差得有点多，讲得偏慢。' }
+    ]
+  },
+  {
+    id: 'p3', org: '树屋英语', name: '分级阅读共读营 · 16 周',
+    cat: '英语', list: 5600, price: 4480, age: [6, 8], wants: ['英语启蒙'],
+    tags: ['每天 15 分钟', '外教带读', '亲子任务'],
+    promo: '平台专属：送 60 本分级读物借阅',
+    rate: 4.8, cnt: 203,
+    reason: '{age} 岁的英语重点在「听得多、不怕说」。共读营把任务压到每天 15 分钟，不占掉你孩子的空白下午。',
+    reviews: [
+      { u: '159****6620', r: 5, d: '2026-10-21', c: '每天 15 分钟真的能做到，书是借的，不用一次买一整套。孩子现在会自己翻书看图说话。' },
+      { u: '136****4415', r: 4, d: '2026-09-12', c: '外教口音不错，就是固定时段只有周三晚上，和我们游泳冲突。' }
+    ]
+  },
+  {
+    id: 'p4', org: '齿轮工坊', name: '不插电逻辑拼装 · 10 次',
+    cat: '逻辑思维', list: 2980, price: 2380, age: [5, 8], wants: ['逻辑思维', '专注力'],
+    tags: ['全程无屏幕', '作品可带走', '混龄 5–8 岁'],
+    promo: '平台专属：两人同行各减 200',
+    rate: 4.9, cnt: 74,
+    reason: '想让 {age} 岁的孩子坐得住，靠的不是「练专注」，而是让他手上有一件想做完的事。这门课 90 分钟只做一件作品。',
+    reviews: [
+      { u: '188****0903', r: 5, d: '2026-10-11', c: '全程没有屏幕，两个小时做一个小升降台，回家自己拆了重装。晚上九点还在拧螺丝。' },
+      { u: '133****7751', r: 4, d: '2026-08-19', c: '混龄班，大孩子会抢工具，老师管得还行但偶尔顾不上。' }
+    ]
+  },
+  {
+    id: 'p5', org: '涂鸦星球', name: '材料探索美术 · 12 次',
+    cat: '美术', list: 3200, price: 2560, age: [4, 7], wants: ['美术'],
+    tags: ['不教范画', '8 种材料', '作品集留存'],
+    promo: '平台专属：赠一次陶艺体验',
+    rate: 4.6, cnt: 61,
+    reason: '{age} 岁学画画最怕「照着画得像」。这门课不给范画，先让孩子把材料玩熟——画得像不像，不是这个阶段的目标。',
+    reviews: [
+      { u: '189****2233', r: 5, d: '2026-09-30', c: '不教范画是真的，孩子画得「不像」但特别敢画，会自己讲画里发生了什么。' },
+      { u: '150****8080', r: 4, d: '2026-08-08', c: '材料很好，就是衣服容易脏，记得带罩衣。' }
+    ]
+  },
+  {
+    id: 'p6', org: '星空编程', name: 'Scratch 图形化编程 · 16 次',
+    cat: '编程', list: 6800, price: 5440, age: [8, 10], wants: ['编程'],
+    tags: ['1 人 1 机', '赛事辅导', '课后作品点评'],
+    promo: '平台专属：赠 4 节赛事集训',
+    rate: 4.5, cnt: 97,
+    reason: '如果孩子已经 8 岁以上、能自己读完一段说明，这门课的节奏是合适的：每两节课做出一个能玩的小游戏。',
+    reviews: [
+      { u: '139****5521', r: 5, d: '2026-10-02', c: '两节课做出一个小游戏，成就感很强，回家会自己改参数。' },
+      { u: '158****6644', r: 3, d: '2026-09-05', c: '进度偏快，我家孩子跟得吃力。插班的话建议先问清楚上到第几课。' }
+    ]
+  },
+  {
+    id: 'p7', org: '笔尖作文', name: '三年级起步作文提分班',
+    cat: '作文', list: 4200, price: 3360, age: [8, 10], wants: ['作文'],
+    tags: ['每周一篇', '老师逐句批注', '对标校内'],
+    promo: '平台专属：赠 3 次一对一改稿',
+    rate: 4.4, cnt: 52,
+    reason: '写作在三年级后才真正开始「成篇」。这门课按校内进度走，适合已经能独立写 200 字的孩子。',
+    reviews: [
+      { u: '177****3312', r: 4, d: '2026-09-22', c: '老师逐句改，能看到孩子句子慢慢变长。' },
+      { u: '152****9977', r: 3, d: '2026-08-14', c: '基本对标校内，重复度有点高，作文基础好的孩子会觉得无聊。' }
+    ]
+  },
+  {
+    id: 'p8', org: '静界专注力', name: '专注力训练 · 感统方向',
+    cat: '专注力', list: 3600, price: 2880, age: [6, 12], wants: ['专注力'],
+    tags: ['一对一评估', '家长同步课', '每节 45 分钟'],
+    promo: '平台专属：赠一次专注力测评',
+    rate: 4.3, cnt: 40,
+    reason: '专注力不是「多练」就有。这门课先做一次评估，再决定是练坐姿、练听觉注意，还是根本不需要练。',
+    reviews: [
+      { u: '187****4408', r: 4, d: '2026-09-18', c: '先做了评估，说我们孩子其实不是注意力问题，是睡眠不够。这点挺意外的。' },
+      { u: '131****6629', r: 4, d: '2026-08-02', c: '一对一评估很细，后续课程偏贵，按需买就行。' }
+    ]
+  },
+  {
+    id: 'p9', org: '墨点书法', name: '硬笔启蒙 · 姿势与控笔 10 次',
+    cat: '书法', list: 2600, price: 1980, age: [5, 9], wants: ['书法'],
+    tags: ['先纠握笔', '每班 6 人', '不评比作品'],
+    promo: '平台专属：赠坐姿矫正器 + 字帖',
+    rate: 4.8, cnt: 66,
+    reason: '{age} 岁练字，先解决握笔和坐姿，不是写得多像。这门课前 4 节不写整字，只做控笔和结构游戏。',
+    reviews: [
+      { u: '186****7712', r: 5, d: '2026-10-09', c: '前三节都在夹豆子、画线，我还担心白花钱。第五节课孩子握笔不勾腕了，写得慢但清楚。' },
+      { u: '139****2280', r: 4, d: '2026-09-15', c: '老师不逼着写满一页，孩子不抗拒。想快速看到字变好看的家长可能会急。' }
+    ]
+  },
+  {
+    id: 'p10', org: '火花思维', name: '在线小班 · 思维启蒙 24 次',
+    cat: '逻辑思维', list: 4680, price: 3280, age: [6, 9], wants: ['逻辑思维'],
+    tags: ['6 人直播小班', '每周 2 次', '教具寄到家'],
+    promo: '平台专属：赠 12 节录播复习',
+    rate: 4.7, cnt: 154,
+    reason: '线上思维课的关键，是「有没有人盯着他把思路讲出来」。这门课每次都要孩子自己说一遍解法，不让他只听。',
+    reviews: [
+      { u: '158****3391', r: 5, d: '2026-10-16', c: '老师会追问「你为什么这么想」，孩子从只会说答案，到能讲出两步理由。' },
+      { u: '137****5528', r: 4, d: '2026-09-08', c: '教具质量不错，就是每周两次对眼睛有点压力，我们改成一次直播一次回看。' }
+    ]
+  },
+  {
+    id: 'p11', org: '口算星球', name: 'AI 陪练年卡 · 每天 10 分钟',
+    cat: '数学', list: 1299, price: 899, age: [7, 10], wants: ['数学提分'],
+    tags: ['每天 10 分钟', 'AI 纠错', '无真人'],
+    promo: '平台专属：首月不满意全额退',
+    rate: 4.2, cnt: 318,
+    reason: '如果只想用最低成本补计算，这门够用：每天 10 分钟，错题自动重排。但它替代不了数感和老师的方法讲解。',
+    reviews: [
+      { u: '135****6604', r: 4, d: '2026-10-03', c: '价格确实低，孩子每天做 10 分钟不抵触。错题会反复出现，但不会讲为什么错。' },
+      { u: '151****8837', r: 3, d: '2026-08-27', c: '适合已经会方法、只是手生的孩子。我家孩子不理解，做完还是错。' }
+    ]
+  },
+  {
+    id: 'p12', org: '画啦啦', name: '在线美术 · 1 对 6 直播 24 次',
+    cat: '美术', list: 3980, price: 2880, age: [5, 9], wants: ['美术'],
+    tags: ['1 对 6 直播', '材料包到家', '不临摹范画'],
+    promo: '平台专属：赠 8 节录播 + 材料包',
+    rate: 4.5, cnt: 142,
+    reason: '不方便跑线下时，线上美术能解决材料和陪伴。但要注意：{age} 岁对屏幕的耐心有限，单节别超过 45 分钟。',
+    reviews: [
+      { u: '188****0915', r: 5, d: '2026-10-12', c: '材料包每周寄到，省了跑文具店。老师不要求画得一样，孩子每次都能讲自己画的故事。' },
+      { u: '133****7746', r: 4, d: '2026-09-02', c: '课程不错，但孩子坐屏幕前容易走神，家长最好在旁边。' }
+    ]
+  },
+  {
+    id: 'p13', org: '数感星球', name: '数学启蒙 · 数感游戏 12 次',
+    cat: '数学', list: 2280, price: 1680, age: [4, 7], wants: ['数学提分'], prep: true,
+    tags: ['不刷题', '用教具', '每班 6 人'],
+    promo: '平台专属：赠家庭数感游戏包',
+    rate: 4.6, cnt: 88,
+    reason: '这个年龄先不谈提分：这门课用教具建立数量、比较、分合，等二年级再上提分班才接得住。',
+    reviews: [
+      { u: '189****3310', r: 5, d: '2026-10-11', c: '不写字不刷题，就是玩教具。孩子现在能一眼看出 7 比 5 多，比提前做口算有用。' },
+      { u: '136****7742', r: 4, d: '2026-09-06', c: '进度慢，急着看分数的家长会不耐烦。' }
+    ]
+  },
+  {
+    id: 'p14', org: '小话匣', name: '看图说话 · 口头表达 10 次',
+    cat: '作文', list: 2680, price: 1980, age: [5, 8], wants: ['作文'], prep: true,
+    tags: ['先说后写', '每班 4 人', '不背范文'],
+    promo: '平台专属：赠 20 张看图卡',
+    rate: 4.5, cnt: 54,
+    reason: '写作文之前先要能说清楚一件事。这门课不写作文，只练「谁、在哪、发生了什么」。',
+    reviews: [
+      { u: '187****0921', r: 5, d: '2026-10-02', c: '孩子从说三个词，到现在能讲完一个小故事，写话作业也不那么费劲了。' }
+    ]
+  },
+  {
+    id: 'p15', org: '专注星球', name: '感统与专注游戏 12 次',
+    cat: '专注力', list: 2480, price: 1760, age: [4, 7], wants: ['专注力'], prep: true,
+    tags: ['大运动为主', '每班 4 人', '家长可旁观'],
+    promo: '平台专属：赠家庭训练卡',
+    rate: 4.4, cnt: 73,
+    reason: '六七岁坐不住，多半是身体还没准备好长时间坐着。这门课先练前庭和本体觉，不是坐在桌前「练专注」。',
+    reviews: [
+      { u: '139****5566', r: 4, d: '2026-09-21', c: '每周两次跑跳，三个月后写作业能坐住 20 分钟。不是立竿见影的课。' }
+    ]
+  },
+  {
+    id: 'p16', org: '积木指令', name: '不插电编程 · 积木指令 10 次',
+    cat: '编程', list: 2880, price: 2180, age: [5, 8], wants: ['编程'], prep: true,
+    tags: ['不碰屏幕', '实物指令卡', '每班 6 人'],
+    promo: '平台专属：赠指令卡套装',
+    rate: 4.7, cnt: 61,
+    reason: '不插电也能学编程：用卡片和积木排指令，练的是顺序和条件，等 8 岁再上机不迟。',
+    reviews: [
+      { u: '150****1188', r: 5, d: '2026-10-08', c: '全程没有屏幕，孩子回家自己给玩具排指令，逻辑顺序明显清楚了。' }
+    ]
+  }
+];
+
+const PROD_MODE = {
+  p1: '线下', p2: '线下', p3: '线上+线下', p4: '线下', p5: '线下', p6: '线上',
+  p7: '线上', p8: '线下', p9: '线下', p10: '线上', p11: '线上', p12: '线上+线下',
+  p13: '线下', p14: '线下', p15: '线下', p16: '线下'
+};
+const priceBand = n => n <= 2000 ? '低' : n <= 3500 ? '中' : '高';
+const AVATAR_COLORS = ['#1E6B57', '#8A5A12', '#3A5B84', '#A8452B', '#5B4A78', '#2F6E6A', '#7A5C2E', '#4A5E3A'];
+const money = n => Number(n).toLocaleString('zh-CN');
+const fmtTime = (d = new Date()) => {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- 持久化（演示用，替换为服务端 JSON 即可） ---------- */
+function save() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      user: state.user, phone: state.phone, profile: state.profile,
+      report: state.report, assessment: state.assessment,
+      orders: state.orders, tickets: state.tickets
+    }));
+  } catch (e) { /* 无痕模式忽略 */ }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY) || localStorage.getItem(LS_KEY_OLD);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    Object.assign(state, {
+      user: d.user || null, phone: d.phone || '', profile: d.profile || null,
+      report: d.report || null, assessment: d.assessment || null,
+      orders: d.orders || [], tickets: d.tickets || []
+    });
+    // 旧版存档：报告没有四维评估或没有测评依据，一律要求重做测评
+    if (state.profile && state.report && (!state.report.dimensions || !state.report.evals || !state.report.obs)) {
+      state.report = state.assessment ? buildReport(state.profile) : null;
+      save();
+    }
+  } catch (e) { /* ignore */ }
+}
+
+/* ---------- 发展阶段 × 期望 评估模型（规则版，可替换为大模型） ---------- */
+const BANDS = {
+  preschool: {
+    label: '学龄前', attention: '8–15 分钟', cap: 2,
+    traits: '学习几乎全部通过游戏完成。孩子能听懂简单规则，但还做不到「为了结果重复练习」；握笔和视觉追踪仍在发育，安静坐 15 分钟就是极限。',
+    task: '这个阶段真正要攒的是睡眠、户外和亲子阅读，不是提前学完一年级。'
+  },
+  bridge: {
+    label: '幼小衔接', attention: '12–18 分钟', cap: 2,
+    traits: '刚进入任务型学习：能坐住、能听指令，但写字容易累，注意力只有 12–18 分钟，靠「有趣」驱动远大于靠「应该」。',
+    task: '这一年的核心是适应学校节奏、建立作息，而不是把课本提前学一遍。'
+  },
+  early: {
+    label: '小学低段', attention: '20 分钟左右', cap: 3,
+    traits: '以具体形象思维为主，能理解顺序、规则和简单因果；识字量快速上升，是兴趣与习惯定型的关键期。',
+    task: '这个阶段拼的不是课时数量，而是能不能把一件事稳定坚持三个月。'
+  },
+  mid: {
+    label: '小学中段', attention: '25 分钟左右', cap: 3,
+    traits: '抽象思维开始萌芽，课业量明显上升，是「三年级现象」的高发期：同样的孩子，作业时间会突然翻倍。',
+    task: '从这个阶段起，复盘和拆解（错题、口述、列步骤）比再多上一门课有效。'
+  },
+  high: {
+    label: '小学高段', attention: '30 分钟左右', cap: 2,
+    traits: '自主意识变强，开始在意同伴评价；课业与小升初压力叠加，时间是家里最稀缺的资源。',
+    task: '课外时间优先给「孩子能自己完成」的事，而不是继续加课。'
+  }
+};
+function bandOf(age) {
+  if (age <= 5) return BANDS.preschool;
+  if (age === 6) return BANDS.bridge;
+  if (age <= 8) return BANDS.early;
+  if (age <= 10) return BANDS.mid;
+  return BANDS.high;
+}
+
+const EXPECT = {
+  '数学提分': {
+    type: '结果型', early: 5, solid: 8,
+    basis: '书面提分靠符号运算和反复订正，通常二年级后才稳；更早有效的是数感（分合、比较、估算）。',
+    risk: '提前刷题容易把「数学＝做题」钉死，之后一提数学就抗拒。',
+    titles: { wait: '数学先做数感，提分班再等一年', no: '{age} 岁先别报数学提分班' },
+    earlyAction: '数感游戏：分水果、称重、扑克牌比大小，每次 10 分钟',
+    action: '错题复盘型小班，每周 1 次 + 家里 10 分钟口述「这题为什么错」',
+    dir: { young: '数感游戏（分合、比较）', old: '错题复盘型小班' },
+    tag: '数学提分班（8 岁后）'
+  },
+  '英语启蒙': {
+    type: '启蒙型', early: 3, solid: 5,
+    basis: '6 岁前是语音辨别的高峰期，重点在「听得多、不怕说」；自然拼读要等听力词汇够了再学。',
+    risk: '跳过听力直接背单词，孩子会读但听不懂，后面还得返工。',
+    titles: { wait: '英语先以听为主，别急着上拼读', no: '{age} 岁先别报英语班' },
+    earlyAction: '亲子共读 + 磨耳朵，每天 15 分钟，不考单词、不要求跟读',
+    action: '每天 15 分钟分级阅读 + 每周 1 次带读',
+    dir: { young: '亲子共读 + 磨耳朵', old: '每天 15 分钟分级阅读' },
+    tag: '自然拼读班（5 岁半后）'
+  },
+  '逻辑思维': {
+    type: '素养型', early: 4.5, solid: 6,
+    basis: '顺序、分类、因果是逻辑的地基，5–8 岁用实物操作建立最有效。',
+    risk: '把「做题快」当成逻辑好，孩子只会套题型。',
+    titles: { wait: '逻辑先玩桌游，正式班再等半年', no: '{age} 岁先玩积木，不用上逻辑班' },
+    earlyAction: '桌游与拼装，每次 20 分钟，允许孩子自己改规则',
+    action: '不插电逻辑拼装，每周 1 次，90 分钟只做一件作品',
+    dir: { young: '桌游与不插电逻辑', old: '不插电逻辑拼装' },
+    tag: '逻辑思维班（6 岁后）'
+  },
+  '编程': {
+    type: '技能型', early: 5, solid: 8,
+    basis: '图形化编程要读懂多步指令、理解顺序与循环，通常 8 岁后才稳定。',
+    risk: '这个年龄真正的收益是「拆解和顺序」，用桌游就能拿到，不必用屏幕时间去换。',
+    titles: { wait: '先玩「拆解与顺序」，屏幕编程再等', no: '{age} 岁先别报屏幕类编程课' },
+    earlyAction: '不插电「步骤卡」：把出门拆成 5 步，让孩子给家长下指令',
+    action: '图形化编程，每周 1 次，两节课做出一个能玩的作品',
+    dir: { young: '「顺序与拆解」游戏', old: '图形化编程（两节一个作品）' },
+    tag: 'Scratch 编程班（8 岁后）'
+  },
+  '游泳': {
+    type: '技能型', early: 4, solid: 4,
+    basis: '4–6 岁学的是「敢下水、会换气」，6–7 岁后协调性到位才谈标准泳姿。',
+    risk: '跳过适应期直接学泳姿，呛一次水孩子可能半年不肯再进泳池。',
+    titles: { wait: '游泳先从「敢下水」开始', no: '{age} 岁先别报泳姿班' },
+    earlyAction: '亲子水中适应，每周 1 次，先解决「敢把脸放进水里」',
+    action: '每周 1 次独立泳姿 + 夏天每周 2 次自主练习',
+    dir: { young: '亲子水中适应', old: '每周一次独立泳姿' },
+    tag: '泳姿班（6 岁后）'
+  },
+  '美术': {
+    type: '素养型', early: 4, solid: 4,
+    basis: '4–7 岁处在涂鸦到图式阶段，重点在材料探索和自我表达。',
+    risk: '用「画得像不像」评价，孩子很快就不敢画了。',
+    titles: { wait: '美术先玩材料，技法训练再等', no: '{age} 岁先自由涂鸦就好' },
+    earlyAction: '自由涂鸦 + 材料探索，不给范画、不评比',
+    action: '材料探索课，每周 1 次；8 岁后可换技法画室',
+    dir: { young: '不教范画的材料探索', old: '材料探索 / 技法画室' },
+    tag: '技法画室（8 岁后）'
+  },
+  '作文': {
+    type: '结果型', early: 6, solid: 8,
+    basis: '三年级前后才具备「成篇」的识字量和书写耐力，更早能练的是口述和观察。',
+    risk: '提前背范文、套结构，孩子会写套路，但写不出自己的观察。',
+    titles: { wait: '写作先练「先说后写」，成篇等三年级', no: '{age} 岁还写不成篇，不用报作文班' },
+    earlyAction: '口述转写：孩子说、家长记，每周 2 次，每次 5 分钟',
+    action: '每周 1 篇 + 老师逐句批注，配合生活观察小本子',
+    dir: { young: '先说后写：口述转写', old: '每周一篇 + 逐句批注' },
+    tag: '作文班（三年级后）'
+  },
+  '专注力': {
+    type: '结果型', early: 6, solid: 8,
+    basis: '6 岁前的「坐不住」多数是发育性的，先排除睡眠不足、户外不够、屏幕过多。',
+    risk: '把「安静坐好」当成专注力，用训练课替代运动与睡眠，方向就反了。',
+    titles: { wait: '坐不住先查睡眠和屏幕，别急着报班', no: '{age} 岁先别把「坐不住」当问题' },
+    earlyAction: '先固定睡眠、每天户外 1 小时、减少短视频，两周后再看',
+    action: '先做一次专业评估，再决定练什么；每周 1 次足够',
+    dir: { young: '固定作息 + 每日户外', old: '先评估，再决定练什么' },
+    tag: '专注力班（8 岁后）'
+  },
+  '书法': {
+    type: '技能型', early: 5, solid: 6,
+    basis: '硬笔写字依赖手部小肌肉和握笔姿势，5–6 岁先练姿势，7 岁后才谈结构和速度。',
+    risk: '过早追求笔画标准，孩子容易握笔过紧，写得更慢也更抗拒。',
+    titles: { wait: '书法先练坐姿握笔，别急着写作品', no: '{age} 岁先别报书法班' },
+    earlyAction: '控笔游戏：连线、涂色、夹豆子，每次 10 分钟，不要求写得像',
+    action: '每周 1 次硬笔课 + 每天 10 分钟临写，先看姿势再看字',
+    dir: { young: '控笔与坐姿游戏', old: '每周一次硬笔临写' },
+    tag: '硬笔书法班（6 岁后）'
+  }
+};
+
+/* ---------- 测评题库：动态出题（家长 6 题 + 孩子 4 题） ---------- */
+const ASK = {
+  active: {
+    who: 'parent', t: '在家或户外，孩子更接近哪种状态？', hint: '选最常出现的那个，不是状态最好的一天。',
+    opts: [
+      { l: '几乎停不下来，喜欢跑跳', v: 3, tag: 'active_high' },
+      { l: '能静能动，看事情', v: 2, tag: 'active_mid' },
+      { l: '偏安静，喜欢坐着做事', v: 1, tag: 'active_low' }
+    ]
+  },
+  social: {
+    who: 'parent', t: '和同龄孩子在一起时，他通常？', hint: '想最近一次在小区或班里的样子。',
+    opts: [
+      { l: '主动张罗，带着别人玩', v: 3, tag: 'social_high' },
+      { l: '跟着玩，需要有人叫', v: 2, tag: 'social_mid' },
+      { l: '更喜欢自己玩', v: 1, tag: 'social_low' },
+      { l: '慢热，熟了才放开', v: 1.5, tag: 'social_slow' }
+    ]
+  },
+  oneonone: {
+    who: 'parent', t: '学新东西时，孩子需要老师单独盯吗？', hint: '这会决定后面问你「专注」还是「社交」。',
+    opts: [
+      { l: '人多也能跟上', v: 3, tag: 'group_ok' },
+      { l: '需要老师时不时点一下', v: 2, tag: 'need_remind' },
+      { l: '一对一时明显学得更好', v: 1, tag: 'need_1on1' }
+    ]
+  },
+  autonomy: {
+    who: 'parent', t: '给他一件要花 20 分钟的事，通常？', hint: '拼图、手工、作业都算。',
+    opts: [
+      { l: '自己规划，做完才停', v: 3 },
+      { l: '要提醒一两次', v: 2 },
+      { l: '要全程陪着', v: 1 },
+      { l: '没兴趣就直接放弃', v: 0 }
+    ]
+  },
+  focus: {
+    who: 'parent', t: '做喜欢的事，能安静多久？', hint: '按最近一个月的观察选。',
+    opts: [
+      { l: '5 分钟内就要换', v: 5, s: 0 },
+      { l: '5–10 分钟', v: 8, s: 1 },
+      { l: '10–20 分钟', v: 15, s: 2 },
+      { l: '20 分钟以上', v: 25, s: 3 }
+    ]
+  },
+  grit: {
+    who: 'parent', t: '遇到做不出来的题，孩子通常会？', hint: '想最近一次具体的情形。',
+    opts: [
+      { l: '马上放弃，情绪比较大', v: 0 },
+      { l: '要大人陪着才肯继续', v: 1 },
+      { l: '自己再试一次', v: 2 },
+      { l: '会换个方法试好几次', v: 3 }
+    ]
+  },
+  slots: {
+    who: 'parent', t: '一周能稳定匀出几个课外时段？', hint: '一个时段约 1.5 小时，含来回路上。',
+    opts: [{ l: '1 段', v: 1 }, { l: '2 段', v: 2 }, { l: '3 段', v: 3 }, { l: '4 段以上', v: 4 }]
+  },
+  entry: {
+    who: 'parent', t: '孩子是按常规年龄入学的吗？', hint: '常规：一年级 6 岁，逐年级递增。',
+    opts: [{ l: '提前一年上学', v: 1 }, { l: '正常年龄', v: 0 }, { l: '晚一年上学', v: -1 }]
+  },
+  screen: {
+    who: 'parent', t: '最近一个月，平均每天屏幕时间？', hint: '手机、平板、电视、网课都算。',
+    opts: [{ l: '2 小时以上', v: 0 }, { l: '1–2 小时', v: 1 }, { l: '1 小时以内', v: 2 }, { l: '基本不看', v: 3 }]
+  },
+  interest: {
+    who: 'child', t: '你最喜欢上哪种课？', hint: '让孩子自己指，家长只读题、不引导。',
+    opts: [
+      { l: '算数 / 数字游戏', v: '数学提分' },
+      { l: '画画 / 做手工', v: '美术' },
+      { l: '游泳 / 运动', v: '游泳' },
+      { l: '搭东西 / 拼装', v: '逻辑思维' },
+      { l: '英语 / 看绘本', v: '英语启蒙' },
+      { l: '写字 / 练字', v: '书法' },
+      { l: '在电脑上做小游戏', v: '编程' }
+    ]
+  },
+  childHard: {
+    who: 'child', t: '遇到不会的题，你会怎么做？', hint: '孩子怎么选都不算错。',
+    opts: [{ l: '先自己再试一次', v: 3 }, { l: '找大人一起看', v: 2 }, { l: '先放一放，等会儿再来', v: 1 }, { l: '就不想做了', v: 0 }]
+  },
+  childReward: {
+    who: 'child', t: '一节课上完，你最想带走什么？', hint: '',
+    opts: [{ l: '一个我自己做的作品', v: 'work' }, { l: '老师夸我一句', v: 'praise' }, { l: '一个新朋友', v: 'friend' }, { l: '下次还想来', v: 'again' }]
+  },
+  childWeekend: {
+    who: 'child', t: '周末有一天完全空着，你最想做什么？', hint: '',
+    opts: [{ l: '出去玩', v: 'out' }, { l: '在家搭东西', v: 'build' }, { l: '看书或画画', v: 'quiet' }, { l: '去上课也行', v: 'class' }]
+  },
+  shufa1: {
+    who: 'child', t: '写字的时候，你更愿意？', hint: '书法专项题，家长只读题。',
+    opts: [{ l: '慢慢写，写得好看', v: 'neat' }, { l: '快点写完，去玩', v: 'fast' }]
+  },
+  shufa2: {
+    who: 'parent', t: '孩子握笔和坐姿，你观察到的是？', hint: '书法专项题。',
+    opts: [{ l: '握笔偏低或勾腕，坐一会儿就趴', v: 1 }, { l: '能坐正，但写十分钟就累', v: 2 }, { l: '姿势基本没问题', v: 3 }]
+  },
+  think1: {
+    who: 'child', t: '拼图或积木卡住时，你会？', hint: '思维专项题，让孩子自己选。',
+    opts: [{ l: '换个方向再试', v: 3 }, { l: '找大人帮忙', v: 2 }, { l: '换一个玩', v: 1 }]
+  },
+  think2: {
+    who: 'parent', t: '孩子会自己找规律吗（按颜色、大小排一排）？', hint: '思维专项题。',
+    opts: [{ l: '经常会，还会自己分类', v: 3 }, { l: '提醒一下会做', v: 2 }, { l: '很少主动这样做', v: 1 }]
+  }
+};
+
+const PARENT_FLOW = [
+  'oneonone',
+  a => a.oneonone && a.oneonone.tag === 'need_1on1' ? 'focus' : 'social',
+  'active',
+  a => a.active && a.active.tag === 'active_high' ? 'grit' : 'autonomy',
+  'slots',
+  a => (a.oneonone && a.oneonone.tag === 'need_1on1') || (a.focus && a.focus.v <= 8) ? 'screen' : 'entry'
+];
+const CHILD_FLOW = [
+  'interest',
+  a => a.interest && a.interest.v === '书法' ? 'shufa1' : a.interest && a.interest.v === '逻辑思维' ? 'think1' : 'childHard',
+  a => a.interest && a.interest.v === '书法' ? 'shufa2' : a.interest && a.interest.v === '逻辑思维' ? 'think2' : 'childReward',
+  'childWeekend'
+];
+function nextAsk(answers, flow) {
+  for (const r of flow) {
+    const q = typeof r === 'function' ? r(answers) : r;
+    if (q && !answers[q]) return q;
+  }
+  return null;
+}
+function nextQuestion(answers) {
+  const pc = Object.keys(answers).filter(k => ASK[k] && ASK[k].who === 'parent').length;
+  const cc = Object.keys(answers).filter(k => ASK[k] && ASK[k].who === 'child').length;
+  if (pc < 6) return nextAsk(answers, PARENT_FLOW);
+  if (cc < 4) return nextAsk(answers, CHILD_FLOW);
+  return null;
+}
+
+function obsOf(assessment) {
+  const A = assessment && assessment.answers;
+  if (!A || !A.interest || !A.slots) return null;
+  const g = (q, f) => (A[q] ? A[q][f] : undefined);
+  const age = state.profile ? +state.profile.age : 7;
+  const defMin = age <= 5 ? 10 : age === 6 ? 12 : age <= 8 ? 18 : age <= 10 ? 22 : 26;
+  const focusAsked = !!A.focus;
+  const autonomyAsked = !!A.autonomy;
+  const socialAsked = !!A.social;
+  const supportAsked = !!A.oneonone;
+  const attentionMin = focusAsked ? A.focus.v : defMin;
+  const focusScore = focusAsked ? A.focus.s : (defMin <= 10 ? 1 : defMin <= 18 ? 2 : 3);
+  return {
+    focusAsked, autonomyAsked, socialAsked, supportAsked,
+    active: g('active', 'v'),
+    social: socialAsked ? A.social.v : 2,
+    support: supportAsked ? A.oneonone.v : 2,
+    autonomy: autonomyAsked ? A.autonomy.v : 1.7,
+    focusScore,
+    attentionMin,
+    attentionText: focusAsked ? A.focus.label : `按 ${age} 岁估算`,
+    persist: g('grit', 'v'),
+    persistText: A.grit ? A.grit.label : (A.childHard ? A.childHard.label : '未测'),
+    remindText: autonomyAsked ? A.autonomy.label : '',
+    cap: g('slots', 'v'),
+    gap: typeof g('entry', 'v') === 'number' ? g('entry', 'v') : 0,
+    gapText: A.entry ? A.entry.label : '未单独测（按年级推算）',
+    screenScore: typeof g('screen', 'v') === 'number' ? g('screen', 'v') : 1.5,
+    screenText: A.screen ? A.screen.label : '未单独测',
+    favorite: g('interest', 'v'),
+    favoriteText: A.interest.label,
+    childPersist: g('childHard', 'v'),
+    childPersistText: A.childHard ? A.childHard.label : '—',
+    rewardText: A.childReward ? A.childReward.label : '',
+    weekendText: A.childWeekend ? A.childWeekend.label : '',
+    shufaStyle: A.shufa1 ? A.shufa1.label : '',
+    gripText: A.shufa2 ? A.shufa2.label : '',
+    thinkText: A.think1 ? A.think1.label : ''
+  };
+}
+
+function assessOne(w, pr, obs) {
+  const k = EXPECT[w];
+  const age = +pr.age;
+  let status = 'go';
+  if (age < k.early) status = 'no';
+  else if (age < k.solid) status = 'wait';
+
+  let action = status === 'go' ? k.action : k.earlyAction;
+  if (w === '游泳' && age <= 6) action = k.earlyAction;
+  if (w === '美术' && age >= 8) action = '技法画室，每周 1 次，先从长期作业开始';
+  if (w === '美术' && age < 8) action = k.earlyAction;
+
+  let extra = '';
+  if (obs && status === 'go') {
+    if (obs.persist <= 1) {
+      status = 'wait';
+      extra = `测评里遇到难题时「${obs.persistText}」，先选周期短、能完整做完的课，把「做完一次」补上。`;
+    } else if (obs.attentionMin < 10 && (w === '数学提分' || w === '作文')) {
+      status = 'wait';
+      extra = `测评里专注约 ${obs.attentionMin} 分钟，还撑不住一节提分班的节奏。`;
+    }
+  }
+  if (w === '专注力' && obs && obs.screenScore <= 1) {
+    action = '先把屏幕压到每天 1 小时内、户外补到 1 小时，两周后再评估要不要上课';
+    if (status === 'go') {
+      status = 'wait';
+      extra = '测评显示每天屏幕偏多，先调环境和作息，比报训练班直接。';
+    }
+  }
+  if (w === '专注力' && obs && obs.attentionMin >= 20 && age >= 7 && !extra) {
+    extra = `测评里能安静 ${obs.attentionMin} 分钟，优先排查的其实不是「专注力」。`;
+  }
+
+  return {
+    w, status, type: k.type,
+    label: status === 'go' ? '现在可以做' : status === 'wait' ? '先铺垫，别急报班' : '还太早',
+    why: k.basis + (extra ? ' ' + extra : ''),
+    action
+  };
+}
+
+function buildReport(pr) {
+  const age = +pr.age;
+  const band = bandOf(age);
+  const obs = state.assessment ? obsOf(state.assessment) : null;
+  const evals = pr.wants.map(w => assessOne(w, pr, obs));
+  const planned = evals.filter(e => e.status !== 'no').length;
+  const expectedAge = GRADES.indexOf(pr.grade) + 3;
+  const ageGap = obs ? obs.gap : (age - expectedAge);
+  const cap = obs ? Math.max(1, obs.cap) : band.cap;
+
+  /* --- 不建议做的：由评估推导 --- */
+  const avoid = [];
+  if (ageGap >= 1) {
+    avoid.push({
+      t: `比同年级孩子小 ${ageGap} 岁，别再叠加课外班`,
+      r: `按常规入学，${pr.grade}通常对应 ${expectedAge} 岁。提前一年上学，书写耐力、听指令和同伴相处都会更吃力，课外时间要先留给作息和运动。`,
+      tag: '低龄跨年级报班'
+    });
+  }
+  if (planned > cap) {
+    avoid.push({
+      t: `${planned} 个期望，超过 ${age} 岁每周的时间上限`,
+      r: `${obs ? `测评里你填的是一周能稳定匀出 ${cap} 个课外时段` : `${band.label}的孩子每周可用的课外时段大约 ${cap} 个`}（不含作业和睡眠）。${planned} 门同时开，结果通常是每门都停在「刚会一点」。先砍到 ${cap} 门，其余排到下个学期。`,
+      tag: `同时启动 ${planned} 门新课`
+    });
+  }
+  evals.filter(e => e.status === 'no').concat(evals.filter(e => e.status === 'wait')).forEach(e => {
+    const k = EXPECT[e.w];
+    avoid.push({
+      t: (k.titles[e.status] || k.titles.wait).replace(/\{age\}/g, age),
+      r: `${k.basis}${k.risk}`,
+      tag: k.tag
+    });
+  });
+  if (!avoid.length) {
+    avoid.push({
+      t: `${age} 岁不用把「${pr.wants[0]}」排进每周三次`,
+      r: `${band.label}的孩子，一项新技能靠的是「稳定的一次」。排太满，孩子容易把兴趣和任务绑在一起，三个月后两样都不想碰。`,
+      tag: '每周 3 次的新课'
+    });
+  }
+  const picked = avoid.slice(0, 3);
+
+  /* --- 可以走的方向 --- */
+  const dirs = [];
+  evals.filter(e => e.status === 'go').forEach(e => {
+    const d = EXPECT[e.w].dir[age <= 7 ? 'young' : 'old'];
+    if (!dirs.includes(d)) dirs.push(d);
+  });
+  if (obs && obs.favorite && pr.wants.includes(obs.favorite) && EXPECT[obs.favorite]) {
+    const fav = EXPECT[obs.favorite].dir[age <= 7 ? 'young' : 'old'];
+    const i = dirs.indexOf(fav);
+    if (i > 0) { dirs.splice(i, 1); dirs.unshift(fav); }
+  }
+  if (obs && obs.favorite && !pr.wants.includes(obs.favorite) && EXPECT[obs.favorite]) {
+    const fav = EXPECT[obs.favorite].dir[age <= 7 ? 'young' : 'old'];
+    if (!dirs.includes(fav)) dirs.unshift(fav);
+  }
+  if (dirs.length < 2) {
+    ['户外运动（每天 1 小时）', '亲子阅读（每天 15 分钟）'].forEach(d => {
+      if (dirs.length < 2 && !dirs.includes(d)) dirs.push(d);
+    });
+  }
+
+  /* --- 四维评估 --- */
+  const stMap = { go: 100, wait: 55, no: 20 };
+  const fit = Math.round(evals.reduce((a, e) => a + stMap[e.status], 0) / Math.max(evals.length, 1));
+  const results = evals.filter(e => EXPECT[e.w].type === '结果型').length;
+  let structure = 92;
+  if (planned > cap) structure -= (planned - cap) * 18;
+  if (results >= 2) structure -= 20;
+  if (evals.length >= 4) structure -= 10;
+  let load = 94 - Math.max(0, planned - cap) * 24 - (planned > cap ? 6 : 0);
+  let rhythm = 94;
+  if (ageGap === 1) rhythm = 74;
+  else if (ageGap >= 2) rhythm = 56;
+  else if (ageGap === -1) rhythm = 80;
+  else if (ageGap <= -2) rhythm = 70;
+  if (age >= 9 && planned >= 3) rhythm -= 8;
+  const clamp = n => Math.max(22, Math.min(97, Math.round(n)));
+
+  const goN = evals.filter(e => e.status === 'go').length;
+  const waitN = evals.filter(e => e.status === 'wait').length;
+  const noN = evals.filter(e => e.status === 'no').length;
+
+  const dimensions = [
+    {
+      key: 'fit', label: '阶段匹配', score: clamp(fit),
+      note: `${goN} 项可直接开始 · ${waitN} 项需铺垫 · ${noN} 项还太早`
+    },
+    {
+      key: 'structure', label: '期望结构', score: clamp(structure),
+      note: `${evals.length} 个期望，其中 ${results} 个是结果型`
+    },
+    {
+      key: 'load', label: '时间负荷', score: clamp(load),
+      note: `预计每周 ${planned} 段课，上限约 ${cap} 段`
+    },
+    {
+      key: 'rhythm', label: '学业节奏', score: clamp(rhythm),
+      note: ageGap > 0 ? `比同年级小 ${ageGap} 岁，压力要预留`
+        : ageGap < 0 ? `比同年级大 ${-ageGap} 岁，基础更稳`
+          : '与常规入学年龄一致'
+    }
+  ];
+
+  /* --- 能力雷达 + 孩子特性 --- */
+  const p100 = v => Math.max(0, Math.min(100, Math.round(v)));
+  const radar = obs ? [
+    { k: '专注持续', v: p100((obs.focusScore == null ? 1 : obs.focusScore) / 3 * 100) },
+    { k: '自主学习', v: p100((obs.autonomy == null ? 1.5 : obs.autonomy) / 3 * 100) },
+    { k: '抗挫力', v: p100(((obs.persist == null ? 1 : obs.persist) * 0.7 + (obs.childPersist == null ? 2 : obs.childPersist) * 0.3) / 3 * 100) },
+    { k: '社交互动', v: p100((obs.social == null ? 2 : obs.social) / 3 * 100) },
+    { k: '规则适应', v: p100((obs.screenScore == null ? 1.5 : obs.screenScore) / 3 * 40 + (ageGap === 0 ? 52 : 30) + (obs.support == null ? 2 : obs.support) * 3) },
+    { k: '兴趣清晰', v: p100(68 + (obs.favorite && pr.wants.includes(obs.favorite) ? 20 : 8) + (obs.rewardText ? 4 : 0)) }
+  ] : [];
+
+  const bandMin = age <= 5 ? 12 : age === 6 ? 15 : age <= 8 ? 20 : age <= 10 ? 25 : 30;
+  const traits = obs ? [
+    {
+      k: '性格活跃度',
+      tag: obs.active >= 2.5 ? 'hi' : obs.active <= 1.5 ? 'lo' : 'mid',
+      tagText: obs.active >= 2.5 ? '高' : obs.active <= 1.5 ? '低' : '中',
+      v: obs.active >= 2.5 ? '高 · 坐不住，但有冲劲' : obs.active <= 1.5 ? '低 · 偏安静，喜欢坐着做事' : '中 · 能静能动',
+      note: obs.active >= 2.5 ? '纯听讲的课容易走神，优先选有跑动、有动手环节的班。' : obs.active <= 1.5 ? '适合深度一点的课，但要注意别把户外时间也省掉。' : '大部分课型都能适应，关键看老师会不会调动。'
+    },
+    {
+      k: '注意力持续',
+      tag: obs.attentionMin >= bandMin + 8 ? 'hi' : obs.attentionMin < bandMin ? 'lo' : 'mid',
+      tagText: obs.attentionMin >= bandMin + 8 ? '强' : obs.attentionMin < bandMin ? '偏弱' : '中',
+      v: `${obs.attentionMin} 分钟 · ${obs.focusAsked ? `同龄约 ${bandMin} 分钟` : '按年龄估算'}`,
+      note: obs.attentionMin < bandMin ? '单节 60 分钟的课偏长，优先 45 分钟以内、中间有活动的班。' : '时长能撑住一节课，可以选正常 60 分钟的班。'
+    },
+    {
+      k: '一对一需求',
+      tag: obs.support <= 1.5 ? 'lo' : obs.support >= 3 ? 'hi' : 'mid',
+      tagText: obs.support <= 1.5 ? '高需求' : obs.support >= 3 ? '可上大班' : '偶尔需要',
+      v: obs.support <= 1.5 ? '高 · 一对一时明显更好' : obs.support >= 3 ? '低 · 人多也能跟上' : '中 · 需要老师点一下',
+      note: obs.support <= 1.5 ? '大班容易变透明，优先 6 人以内或一对一，别选 20 人以上的大课。' : '小班和一对一都可以，不必为「一对一」多付钱。'
+    },
+    {
+      k: '自主学习',
+      tag: obs.autonomy >= 2.5 ? 'hi' : obs.autonomy <= 1 ? 'lo' : 'mid',
+      tagText: obs.autonomy >= 2.5 ? '强' : obs.autonomy <= 1 ? '偏弱' : '中',
+      v: obs.autonomyAsked ? (obs.autonomy >= 2.5 ? '强 · 能自己规划做完' : obs.autonomy <= 1 ? '弱 · 需要全程陪' : '中 · 提醒一两次') : '中 · 按一对一需求推算',
+      note: obs.autonomyAsked ? (obs.autonomy <= 1 ? '纯线上录播、AI 课大概率坚持不下来，选有老师跟进的班。' : '有任务、有节点的课型更适合，别买纯自习类。') : '这一项由「一对一需求」推算，建议下次补测。'
+    },
+    {
+      k: '社交偏好',
+      tag: obs.social >= 2.5 ? 'hi' : obs.social <= 1.2 ? 'lo' : 'mid',
+      tagText: obs.social >= 2.5 ? '主动' : obs.social <= 1.2 ? '偏独处' : '跟随',
+      v: obs.social >= 2.5 ? '主动 · 同伴能带动他' : obs.social <= 1.2 ? '偏独处 · 人多了反而慢' : '跟随 · 熟了才放开',
+      note: obs.social <= 1.2 ? '先试一对一或 4 人以内的小班，别一上来就报集体课。' : '小班的同伴氛围是加分项，可以优先 6–8 人班。'
+    }
+  ] : [];
+
+  const HI_READ = {
+    '专注持续': '他能在喜欢的事上待得住，选课优先看有没有动手环节，别选纯听讲。',
+    '自主学习': '给他任务型课程（有作品、有节点）比陪伴型课程有效。',
+    '抗挫力': '遇到难一点的内容不容易崩，可以适度选有挑战的班。',
+    '社交互动': '同伴场景能带动他，小班比一对一更容易进入状态。',
+    '规则适应': '对课堂规则和作息适应得好，集体课不容易出问题。',
+    '兴趣清晰': '他已经能说出自己喜欢什么，按他的选择排课，坚持率最高。'
+  };
+  const LO_READ = {
+    '专注持续': '一节 60 分钟的课对他偏长，优先 45 分钟以内、中间有活动的班。',
+    '自主学习': '启动和收尾都需要人盯，别买纯录播或纯 AI 课。',
+    '抗挫力': '遇到难内容容易停，先选「能完整做完」的短周期课。',
+    '社交互动': '大班容易变透明，优先 6 人以内或一对一。',
+    '规则适应': '换环境需要时间，插班前先试听一次。',
+    '兴趣清晰': '他说不准喜欢什么，先用 4 次短课试，不要一次买年包。'
+  };
+  let radarRead = '';
+  if (radar.length) {
+    const sorted = radar.slice().sort((a, b) => b.v - a.v);
+    const hi = sorted[0], lo = sorted[sorted.length - 1];
+    radarRead = `最突出的是<b>「${hi.k} ${hi.v}」</b>：${HI_READ[hi.k]} 最需要补的是<b>「${lo.k} ${lo.v}」</b>——${LO_READ[lo.k]}`;
+  }
+
+  /* --- 摘要与建议 --- */
+  const goList = evals.filter(e => e.status === 'go').map(e => e.w);
+  const waitList = evals.filter(e => e.status === 'wait').map(e => e.w);
+  const noList = evals.filter(e => e.status === 'no').map(e => e.w);
+  let summary = `${age} 岁读${pr.grade}：`;
+  if (goList.length) summary += `${goList.join('、')}现在就能开始`;
+  if (waitList.length) summary += `${goList.length ? '；' : ''}${waitList.join('、')}先铺垫，别急着报班`;
+  if (noList.length) summary += `${goList.length || waitList.length ? '；' : ''}${noList.join('、')}还太早`;
+  summary += '。每条判断的依据都写在下面，不同意可以直接改档案重算。';
+
+  const weakest = dimensions.slice().sort((a, b) => a.score - b.score)[0];
+  const bestGo = goList[0] || '';
+  const ADVICE = {
+    fit: bestGo
+      ? `${age} 岁的孩子，<b>先把「${bestGo}」这一件事做满三个月</b>，再考虑加第二门。换得太勤，比选错课更伤。`
+      : `这个年龄先不急着报班。<b>把睡眠、户外和亲子阅读稳定下来</b>，比任何一门课都更能托住后面的学习。`,
+    structure: `你有 ${evals.length} 个期望，<b>先砍到 ${cap} 个以内</b>。同时启动越多，能留下来的越少，三个月后大概率一门都没坚持。`,
+    load: `一周稳定可用的时间只有 ${cap} 个课外时段。<b>与其排满，不如留一个空白下午</b>——那是孩子自己消化内容的时间。`,
+    rhythm: ageGap > 0
+      ? `比同年级孩子小 ${ageGap} 岁，<b>课外先服从作息</b>：睡得够、动得够，比多上一门课更能托住成绩。`
+      : `比同年级孩子大 ${Math.abs(ageGap)} 岁，基础通常更稳。<b>把时间花在方法和自主性上</b>，不用跟着同龄人的进度表加课。`
+  };
+
+  if (pr.extra) summary += ` 你补充的「${pr.extra}」已计入本轮甄选。`;
+  if (pr.follow && pr.follow.length) {
+    const picks = pr.follow.filter(f => f.a).map(f => `「${f.a}」`).join('');
+    if (picks) summary += ` 追问里你选的是 ${picks}，已并入选课标准。`;
+  }
+
+  return {
+    session: SESSION,
+    date: new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
+    stage: { label: band.label, traits: band.traits, task: band.task, attention: band.attention, cap },
+    obs, evals, dimensions, summary, radar, traits, radarRead, follow: pr.follow || [],
+    avoid: picked,
+    dirs: dirs.slice(0, 4),
+    postpone: picked.map(a => a.tag),
+    advice: ADVICE[weakest.key] || ADVICE.fit
+  };
+}
+
+/* ---------- 匹配 ---------- */
+const CAT_WANT = {
+  '游泳': '游泳', '数学': '数学提分', '英语': '英语启蒙', '逻辑思维': '逻辑思维',
+  '美术': '美术', '编程': '编程', '作文': '作文', '专注力': '专注力', '书法': '书法'
+};
+
+/* ---------- 扩充课程库：每个方向 5 个线上 + 1 个本地到店 ---------- */
+const CATALOG = [
+  // 游泳
+  ['游泳', '水感星球', '陆上打腿与呼吸 · 12 节带练', 1680, 2280, 4, 7, '线上', '家长带练,无需泳池', '先练呼吸和打腿，不用下水也能建立水感，等敢下水再进池。', '跟着视频练了两周，孩子不怕水了。'],
+  ['游泳', '蓝鲸线上', '游泳启蒙直播 · 16 节', 2380, 3180, 5, 9, '线上', '每周直播,教练纠错', '直播看动作，家长在泳池边照着带，比纯看视频有效。', '教练会盯着视频纠正动作，比我们自己瞎教强。'],
+  ['游泳', '小浪花', '1 对 1 在线泳姿纠正 · 12 节', 4200, 5600, 6, 12, '线上', '1 对 1,拍视频点评', '已经会游但姿势不对的孩子，线上一对一改动作更省时间。', '自由泳换气改了三节课就顺了。'],
+  ['游泳', '泳往直前', 'AI 动作打卡 · 12 周', 1280, 1680, 6, 10, '线上', 'AI 打分,短时高频', '用手机拍动作给反馈，适合已经能下水、只需要练频次的孩子。', '便宜，适合当辅助，不能替代下水。'],
+  ['游泳', '浪花营', '暑期线上体能 + 泳姿 · 10 次', 2980, 3800, 7, 12, '线上', '体能打底,暑期集中', '先补核心力量再谈泳姿，适合暑假集中练。', '体能练完再下水，明显游得远了。'],
+  ['游泳', '碧波泳馆（{city}）', '到店小班 · 1 对 4', 3600, 4200, 4, 10, '线下', '恒温泳池,教练下水', '游泳必须下水，这是同城能直接到店的一对四小班。', '教练全程在池里，孩子第一节课就敢把头埋进水里。'],
+  // 数学
+  ['数学', '火花数感', '线上小班 · 24 节', 2980, 3680, 5, 8, '线上', '6 人小班,教具寄到家', '数感要用教具摆出来，线上小班也能做到。', '每节课寄教具，孩子当游戏玩。'],
+  ['数学', '豌豆思维', '直播小班 · 48 节', 5980, 6980, 6, 10, '线上', '固定老师,每周两次', '系统课，适合已经能坐住 25 分钟的孩子。', '老师固定，孩子不用反复适应。'],
+  ['数学', '你拍一', '1 对 1 在线 · 24 节', 7980, 9200, 6, 12, '线上', '1 对 1,按薄弱点排课', '一对一适合已经明确卡在某个知识点上的孩子。', '哪块弱补哪块，不跟着大班走。'],
+  ['数学', '数感星球', 'AI 互动年课', 1680, 2180, 4, 7, '线上', 'AI 互动,每天 15 分钟', '低龄先玩数量、比较、分合，不碰竖式。', '每天 15 分钟，当成动画片看。'],
+  ['数学', '奥数启蒙', '线上专题 · 12 讲', 2180, 2680, 8, 12, '线上', '专题制,按讲买', '三年级后再考虑，且只买专题不买年课。', '先买了一个专题试，孩子接受再续。'],
+  ['数学', '拾光数学（{city}）', '到店小班 · 1 对 6', 4680, 5400, 6, 10, '线下', '到店,可旁听', '同城小班，能先旁听一节再决定。', '旁听了一次，老师会等孩子自己想。'],
+  // 英语
+  ['英语', '叽里呱啦', 'AI 启蒙年课', 1299, 1699, 3, 6, '线上', 'AI 互动,每天 10 分钟', '学龄前只做听力和兴趣，不背单词不默写。', '当儿歌听，孩子会主动点开。'],
+  ['英语', '久趣英语', '1 对 4 直播 · 60 节', 4980, 5980, 5, 9, '线上', '4 人小班,固定时段', '有同伴才愿意开口，一对四比一对二压力小。', '四个孩子轮流说，轮到自己也不慌。'],
+  ['英语', '星芽外教', '1 对 1 北美外教 · 60 节', 9800, 11800, 6, 12, '线上', '1 对 1,可固定老师', '已经敢开口、需要高频对话的孩子再考虑，别当启蒙第一课。', '贵，但孩子敢整句说了。'],
+  ['英语', '斑马英语', 'AI 系统课 · 年课', 2800, 3400, 4, 8, '线上', 'AI 课,配套绘本', '系统但仍是输入为主，需要家长陪着说。', '绘本不错，光看课不开口没用。'],
+  ['英语', '英语戏剧营', '线上 · 16 次', 3280, 3980, 7, 12, '线上', '戏剧,开口场景', '用表演逼着开口，比背课文自然。', '结营演了一段小剧，孩子挺得意。'],
+  ['英语', '小鹦鹉英语（{city}）', '到店中教小班 · 1 对 6', 5600, 6400, 5, 10, '线下', '到店,中教', '同城中教小班，适合先建立开口习惯。', '中教更懂中国孩子不敢说的问题。'],
+  // 逻辑思维
+  ['逻辑思维', '逻辑狗线上', '家庭训练 · 12 周', 980, 1280, 4, 7, '线上', '卡片教具,家长带', '低龄逻辑靠实物操作，不需要报直播课。', '一套卡片能玩半年，比上课划算。'],
+  ['逻辑思维', '豌豆思维', '逻辑小班 · 40 节', 5280, 6280, 5, 9, '线上', '6 人小班,动画课件', '系统训练分类、排序、推理，适合坐得住的孩子。', '课件做得有意思，孩子盼着上课。'],
+  ['逻辑思维', '火花思维', '1 对 6 直播 · 32 节', 3980, 4680, 5, 8, '线上', '小班直播,可回放', '节奏偏慢，适合刚接触逻辑的孩子。', '每节课一个主题，回家会自己找规律。'],
+  ['逻辑思维', '棋思逻辑', '线上围棋思维 · 24 节', 2680, 3280, 6, 10, '线上', '围棋,复盘', '用围棋练推演，比刷题更接近真实思考。', '下棋会想两步了，写作业也开始先看题。'],
+  ['逻辑思维', '思维挑战营', '线上项目制 · 16 次', 3600, 4200, 8, 12, '线上', '项目制,小组协作', '大龄孩子用项目练拆解问题，不适合低龄。', '一个项目做四周，孩子讲得清步骤了。'],
+  ['逻辑思维', '齿轮工坊（{city}）', '到店 · 积木逻辑小班', 4200, 4900, 5, 10, '线下', '到店,实物搭建', '同城到店，用积木把抽象关系摆出来。', '每节课搭一个装置，回家还要讲原理。'],
+  // 编程
+  ['编程', '编程猫', '线上录播年课', 1980, 2480, 6, 10, '线上', '录播,图形化', '录播便宜，但需要孩子自己能坐住跟着做。', '便宜是真便宜，坐不住就白买。'],
+  ['编程', '核桃编程', 'AI 双师 · 48 节', 2680, 3280, 7, 12, '线上', 'AI 双师,每天一关', '每天一关的节奏，比一周一次更容易坚持。', '每天 20 分钟，孩子自己会去点。'],
+  ['编程', '童程童美', '1 对 1 在线 · 40 节', 6980, 8200, 8, 12, '线上', '1 对 1,可做作品', '一对一适合已经有明确项目想做的孩子。', '老师带着做了一个小游戏，很有成就感。'],
+  ['编程', '不插电编程', '家庭盒子 · 12 期', 1280, 1680, 5, 8, '线上', '不插屏,指令卡', '低龄先学顺序和条件，不用先买电脑课。', '全是卡片和积木，没有屏幕。'],
+  ['编程', '信奥启蒙', '线上小班 · 24 节', 4800, 5600, 9, 12, '线上', 'C++ 入门,竞赛向', '走竞赛路线再考虑，且要先确认孩子数学基础。', '讲得快，数学弱的孩子会跟不上。'],
+  ['编程', '极客少年（{city}）', '到店 · 机器人编程', 5800, 6800, 7, 12, '线下', '到店,器材实操', '同城到店，能摸到器材，适合动手型孩子。', '每节课有实物成果，孩子很买账。'],
+  // 书法
+  ['书法', '六品书法', '线上录播 · 60 讲', 699, 999, 5, 9, '线上', '录播,字帖配套', '低龄先练控笔，录播够用，不用买直播。', '字帖寄过来，跟着写就行。'],
+  ['书法', '墨课', '直播小班 · 24 节', 2680, 3280, 6, 10, '线上', '直播,作业点评', '需要有人盯姿势和笔顺，直播比录播有效。', '老师会逐个点评，姿势纠正得及时。'],
+  ['书法', '1 对 1 硬笔纠正', '线上 · 20 节', 4280, 5200, 6, 12, '线上', '1 对 1,拍字点评', '字已经写歪、需要逐个纠正的孩子再考虑。', '拍了三次作业，握笔就改过来了。'],
+  ['书法', '每日一字', 'AI 打卡年课', 999, 1280, 5, 10, '线上', 'AI 比对,每天一字', '解决坚持问题，不解决方法问题。', '打卡有意思，但不能替代老师。'],
+  ['书法', '软笔进阶', '线上专题 · 16 讲', 1880, 2380, 8, 12, '线上', '软笔,专题', '硬笔稳定后再转软笔，别一上来就写毛笔。', '先硬笔后软笔，顺序别反。'],
+  ['书法', '砚台书院（{city}）', '到店 · 硬笔小班', 3600, 4200, 5, 12, '线下', '到店,坐姿纠正', '同城到店，老师能直接按住手纠正姿势。', '在家写歪没人管，到店两节课就正了。'],
+  // 美术
+  ['美术', '画啦啦', 'AI 美术年课', 1980, 2480, 4, 8, '线上', 'AI 课,材料寄送', '低龄美术重表达，AI 课能保证每周动手。', '材料包寄到家，不用自己准备。'],
+  ['美术', '美术宝', '1 对 1 在线 · 48 节', 5980, 7200, 5, 12, '线上', '1 对 1,可示范', '想系统学造型再考虑一对一，价格偏高。', '老师边画边讲，孩子跟着就能画出来。'],
+  ['美术', '小熊美术', '直播小班 · 24 节', 2680, 3280, 4, 7, '线上', '小班直播,主题课', '学龄前用主题课保持兴趣，不追求画得像。', '每节课一个主题，孩子很期待。'],
+  ['美术', '艺术盒子', '材料包 + 录播 · 12 期', 1280, 1680, 4, 8, '线上', '材料包,录播', '不想被上课时间绑住，就买材料包自己玩。', '周末拿一盒出来，能玩一下午。'],
+  ['美术', '插画进阶', '线上专题 · 16 讲', 2380, 2880, 9, 12, '线上', '插画,专题', '大龄孩子想走插画方向再买，低龄没必要。', '讲技法，太小的孩子听不进去。'],
+  ['美术', '白日梦画室（{city}）', '到店 · 综合材料', 4200, 4900, 4, 12, '线下', '到店,材料丰富', '同城画室，材料和空间是在家替代不了的。', '画室材料多，孩子每次都不想走。'],
+  // 作文
+  ['作文', '看图写话', '线上 · 16 讲', 1280, 1680, 6, 9, '线上', '先说后写,短课', '低年级先解决「写不出」，不碰套路模板。', '从说三句话到能写一段，够用了。'],
+  ['作文', '小荷作文', '直播小班 · 24 节', 2980, 3680, 7, 10, '线上', '小班,当堂练笔', '当堂写当堂改，比只看课有效。', '每节课都要写，逃不掉。'],
+  ['作文', '1 对 1 作文批改', '线上 · 12 次', 3280, 3980, 8, 12, '线上', '1 对 1,逐句批改', '已经有写作基础、只差打磨的孩子再买。', '批改很细，孩子知道问题在哪。'],
+  ['作文', '写作 AI 陪练', '年课', 980, 1280, 7, 12, '线上', 'AI 反馈,每天一题', '便宜，能解决练得少，不解决立意。', '当练笔工具可以，别指望提分。'],
+  ['作文', '阅读写作营', '线上 · 20 次', 3680, 4380, 9, 12, '线上', '读写结合,项目制', '高年级需要读写结合，低年级先别上。', '读完再写，孩子有东西可写。'],
+  ['作文', '纸飞机作文（{city}）', '到店 · 小班', 3980, 4600, 7, 12, '线下', '到店,面批', '同城面批，改稿效率比线上高。', '当面改一遍，顶自己改十遍。'],
+  // 专注力
+  ['专注力', '专注力家庭训练', '12 周计划', 980, 1280, 4, 8, '线上', '家庭训练,每天 10 分钟', '先练身体和节奏，不要一上来就坐着练专注。', '每天十分钟，坚持下来有用。'],
+  ['专注力', '舒尔特线上营', '直播 · 24 次', 1980, 2480, 5, 10, '线上', '直播带练,小游戏', '用游戏练视觉搜索，适合坐不住的孩子。', '当游戏玩，孩子不抗拒。'],
+  ['专注力', '感统 1 对 1', '线上指导 · 20 次', 3980, 4680, 4, 7, '线上', '1 对 1,家长执行', '低龄专注问题多半是感统，线上指导家长在家做。', '教练教家长怎么带孩子练，比报班便宜。'],
+  ['专注力', 'AI 专注打卡', '年课', 699, 899, 5, 12, '线上', 'AI 记录,打卡', '只解决提醒和记录，不解决能力。', '打卡有点用，但孩子会敷衍。'],
+  ['专注力', '学习习惯营', '线上 · 16 次', 2680, 3280, 8, 12, '线上', '习惯拆解,家长课', '大龄孩子要的是流程和习惯，不是「专注力训练」。', '教怎么拆作业，比讲道理有用。'],
+  ['专注力', '小树感统（{city}）', '到店 · 感统训练', 4600, 5400, 4, 8, '线下', '到店,大运动', '同城到店，有大器械，家里替代不了。', '跑跳一小时，回家写作业能坐住。']
+];
+CATALOG.forEach((r, i) => {
+  const [cat, org, name, price, list, a0, a1, mode, tags, reason, rv] = r;
+  PRODUCTS.push({
+    id: 'c' + i, org, name, cat, price, list, age: [a0, a1],
+    wants: [CAT_WANT[cat]], mode, local: org.includes('{city}'), tags: tags.split(','),
+    promo: org.includes('{city}') ? '到店可先旁听一节' : '', rate: +(4.4 + (i % 5) * 0.1).toFixed(1), cnt: 48 + (i * 17) % 260,
+    reason, reviews: [{ u: '1' + (30 + i % 60) + '****' + String(1000 + i * 13).slice(-4), r: 5, d: '2026-10-0' + (1 + i % 8), c: rv }]
+  });
+});
+const modeOf = p => p.mode || PROD_MODE[p.id] || '线下';
+const cityOf = () => (state.profile && state.profile.city) || '本地';
+const locOrg = p => (p.org || '').replace(/\{city\}/g, cityOf());
+const locName = p => (p.name || '').replace(/\{city\}/g, cityOf());
+function riskOf(p, pr) {
+  const age = +pr.age;
+  if (state.report) {
+    const ev = state.report.evals.find(e => e.w === CAT_WANT[p.cat]);
+    if (ev && ev.status !== 'go' && !p.prep) {
+      return ev.status === 'no'
+        ? `${ev.w}在你的诊断里是「还太早」：${EXPECT[ev.w].basis}`
+        : `${ev.w}在你的诊断里建议先铺垫、别直接报班：${EXPECT[ev.w].basis}`;
+    }
+  }
+  if (age < p.age[0]) return `课程按 ${p.age[0]} 岁以上的认知节奏设计，${age} 岁插班通常第一周就跟不上，孩子容易先得出「我不行」的结论。`;
+  if (age > p.age[1]) return `内容对 ${age} 岁偏基础，上两节就会觉得「太简单」，这笔钱花得不值。`;
+  return '';
+}
+function scoreOf(p, pr) {
+  let s = 42;
+  const overlap = p.wants.filter(w => pr.wants.includes(w)).length;
+  s += Math.min(overlap, 2) * 19;
+  const age = +pr.age;
+  s += (age >= p.age[0] && age <= p.age[1]) ? 16 : -10;
+  if (overlap === 0) s -= 6;
+  if (state.report && state.report.obs && state.report.obs.favorite === CAT_WANT[p.cat]) s += 9;
+  return Math.max(35, Math.min(97, s));
+}
+function fillReason(p, pr) {
+  const primary = pr.wants.find(w => p.wants.includes(w)) || pr.wants[0] || p.cat;
+  const base = p.reason.replace(/\{age\}/g, pr.age).replace(/\{want\}/g, primary);
+  const related = p.wants.some(w => pr.wants.includes(w));
+  return related ? base : `这一门不解决「${primary}」，但属于同阶段的相邻方向：${base}`;
+}
+const TRACE_DIM = {
+  '数学': '专注持续', '英语': '兴趣清晰', '逻辑思维': '抗挫力', '编程': '自主学习',
+  '游泳': '规则适应', '美术': '兴趣清晰', '书法': '专注持续', '作文': '专注持续', '专注力': '专注持续'
+};
+
+/* ---------- 导航 ---------- */
+const META = {
+  landing: { bar: false, tab: false },
+  login: { bar: false, tab: false },
+  form: { bar: true, title: '快速建档', back: true, tab: false },
+  assess: { bar: true, title: '快速测评', back: true, tab: false },
+  diagnosing: { bar: false, tab: false },
+  report: { bar: true, title: '避雷报告', tab: true, back: true },
+  recommend: { bar: true, title: '匹配课程', tab: true, back: true },
+  success: { bar: true, title: '报名结果', tab: true, back: false },
+  growth: { bar: true, title: '成长档案', tab: true, back: false },
+  aftersale: { bar: true, title: '售后工单', tab: true, back: false }
+};
+let cur = 'landing';
+const SESSION = String(Date.now());
+
+function go(id, opt = {}) {
+  try { speechSynthesis.cancel(); } catch (e) { }
+  if (opt.push !== false && cur && cur !== id) historyStack.push(cur);
+  cur = id;
+  if (id !== 'assess' && micStream) {
+    try { micStream.getAudioTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ }
+    micStream = null;
+  }
+  $$('.screen').forEach(s => s.classList.toggle('on', s.id === 's-' + id));
+  const meta = META[id] || {};
+
+  const bar = $('#appbar');
+  bar.hidden = !meta.bar;
+  if (meta.bar) {
+    bar.classList.toggle('solid', true);
+    $('#barTitle').textContent = meta.title || '';
+    $('#backBtn').style.visibility = meta.back ? 'visible' : 'hidden';
+    $('#barRight').innerHTML = meta.tab
+      ? `<button class="iconbtn" id="barStar" aria-label="我的档案">
+           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a1 1 0 0 1 1-1h9l6 6v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M14 4v6h6"/></svg>
+         </button>`
+      : '';
+    const star = $('#barStar');
+    if (star) star.onclick = () => go('growth');
+  }
+
+  app.classList.toggle('has-tab', !!meta.tab && !!state.user);
+  $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === id));
+
+  const sc = $('#s-' + id);
+  if (sc) sc.scrollTop = 0;
+
+  if (id === 'report') renderReport();
+  if (id === 'recommend') renderRec();
+  if (id === 'success') renderSuccess();
+  if (id === 'growth') renderGrowth();
+  if (id === 'aftersale') renderAftersale();
+  if (id === 'assess') {
+    if (!state.assessment) {
+      state.assessment = null;
+      asAnswers = {};
+      asOrder = [];
+      asPhase = 'intro';
+      asQid = null;
+      asCount = 0;
+    } else if (!asAnswers) {
+      asAnswers = state.assessment.answers || {};
+      asOrder = [];
+      asPhase = 'intro';
+      asQid = null;
+    }
+    renderAssess();
+  }
+  if (id === 'diagnosing') runDiagnose();
+  if (id === 'landing') {
+    const b = $('#startBtn');
+    b.textContent = '开始诊断 →';
+  }
+  if (id === 'login') {
+    const el = $('#loginSeq');
+    if (el) el.textContent = money(ensureSeq());
+    const ph = $('#phone');
+    if (ph && state.phone) ph.value = state.phone;
+    const lb = $('#loginBtn');
+    if (lb) lb.disabled = !ph || ph.value.length !== 11;
+  }
+  if (id !== 'assess') {
+    try { speechSynthesis.cancel(); } catch (e) { }
+  }
+}
+let historyStack = [];
+function back() {
+  if (cur === 'assess') {
+    if (asPhase === 'intro') return go('form', { push: false });
+    return assessBack();
+  }
+  if (cur === 'report') return go('assess', { push: false });
+  if (cur === 'recommend') return go('report', { push: false });
+  if (cur === 'form') return go('landing', { push: false });
+  if (cur === 'success') return go('growth', { push: false });
+  const prev = historyStack.pop();
+  go(prev || 'landing', { push: false });
+}
+
+/* ---------- toast / sheet ---------- */
+let toastTimer = null;
+function toast(msg, ms = 2200) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), ms);
+}
+function sheetOpen(title, sub, html) {
+  $('#sheetTitle').textContent = title;
+  $('#sheetSub').textContent = sub || '';
+  $('#sheetSub').style.display = sub ? 'block' : 'none';
+  $('#sheetBody').innerHTML = html;
+  $('#sheetBody').scrollTop = 0;
+  $('#mask').classList.add('on');
+  $('#sheet').classList.add('on');
+}
+function sheetClose() {
+  $('#mask').classList.remove('on');
+  $('#sheet').classList.remove('on');
+}
+$('#mask').onclick = sheetClose;
+$('#sheetClose').onclick = sheetClose;
+
+/* ---------- 语音输入 ---------- */
+let micStream = null;
+const voice = { active: false, kind: null, rec: null, t0: 0, tick: null, text: '', sim: null, recType: 'audio/webm' };
+const SAMPLES = [
+  '孩子六岁，在广州上一年级，想学游泳和逻辑思维',
+  '孩子七岁，在深圳读二年级，想补一下数学，也想试试编程',
+  '孩子五岁，在杭州上幼儿园大班，想学英语和美术'
+];
+const CN_NUM = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10, 十一: 11, 十二: 12 };
+const GRADES = ['幼儿园小班', '幼儿园中班', '幼儿园大班', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
+const CITIES = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京', '西安', '长沙', '重庆', '苏州', '天津', '佛山', '东莞', '郑州', '青岛', '厦门', '宁波', '合肥', '济南', '福州', '昆明', '无锡'];
+const WANT_KW = [
+  ['数学', '数学提分'], ['提分', '数学提分'], ['口算', '数学提分'],
+  ['英语', '英语启蒙'], ['口语', '英语启蒙'],
+  ['逻辑', '逻辑思维'], ['思维', '逻辑思维'],
+  ['编程', '编程'], ['机器人', '编程'],
+  ['游泳', '游泳'], ['戏水', '游泳'],
+  ['美术', '美术'], ['画画', '美术'], ['绘画', '美术'],
+  ['作文', '作文'], ['写作', '作文'],
+  ['专注', '专注力'], ['注意力', '专注力']
+];
+
+function parseUtter(t) {
+  const out = { age: 0, city: '', grade: '', wants: [] };
+  const city = CITIES.find(c => t.includes(c));
+  if (city) out.city = city;
+
+  let m = t.match(/(\d{1,2})\s*(?:周?岁)/);
+  if (m) {
+    const a = +m[1];
+    if (a >= 3 && a <= 14) out.age = Math.min(12, Math.max(4, a));
+  }
+  if (!out.age) {
+    m = t.match(/([一二三四五六七八九十]{1,2})\s*(?:周?岁)/);
+    if (m && CN_NUM[m[1]]) out.age = Math.min(12, Math.max(4, CN_NUM[m[1]]));
+  }
+
+  if (/小班/.test(t)) out.grade = '幼儿园小班';
+  else if (/中班/.test(t)) out.grade = '幼儿园中班';
+  else if (/大班/.test(t)) out.grade = '幼儿园大班';
+  else {
+    m = t.match(/([一二三四五六1-6])\s*年级/);
+    if (m) {
+      const idx = /^\d$/.test(m[1]) ? +m[1] : CN_NUM[m[1]];
+      if (idx >= 1 && idx <= 6) out.grade = GRADES[idx + 2];
+    }
+  }
+
+  if (!out.age && out.grade) {
+    out.age = GRADES.indexOf(out.grade) + 3;
+  }
+  if (!out.grade && out.age) {
+    const g = Math.max(0, Math.min(8, out.age - 3));
+    out.grade = GRADES[g];
+  }
+
+  WANT_KW.forEach(([kw, label]) => {
+    if (t.includes(kw) && !out.wants.includes(label)) out.wants.push(label);
+  });
+  return out;
+}
+
+function voiceUI(kind, on, sec) {
+  if (kind === 'form') {
+    const btn = $('#voiceBtn');
+    btn.classList.toggle('rec', on);
+    $('#voiceSub').textContent = on
+      ? `录音中 ${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')} · 说完再点一下结束`
+      : '例如「孩子六岁，在广州上一年级，想学游泳」';
+  }
+  if (kind === 'city') {
+    $('#cityMic').classList.toggle('rec', on);
+  }
+  if (kind === 'ticket') {
+    $('#ticketMic').classList.toggle('rec', on);
+    $('#ticketMicTxt').textContent = on ? `录音中 ${sec}s` : '语音描述';
+  }
+  if (kind === 'refine') {
+    const m = $('#rfMic');
+    if (m) m.classList.toggle('on', on);
+    const h = $('#rfHint');
+    if (h) h.textContent = on ? `录音中 ${sec}s · 再点一下结束` : '也可以直接打字';
+  }
+  if (kind === 'follow') {
+    const m = $('#fuMic');
+    if (m) m.classList.toggle('on', on);
+    const h = $('#fuHint');
+    if (h) h.textContent = on ? `录音中 ${sec}s · 说完再点一下` : '可以直接打字，也可以点左边说';
+  }
+}
+
+const ASR_FIX = [
+  [/树学|数雪|属学|梳学/g, '数学'],
+  [/英鱼|鹰语|因语|英雨/g, '英语'],
+  [/书发|输法|舒发|书法课/g, '书法'],
+  [/游永|有泳|游泳课/g, '游泳'],
+  [/罗辑|逻辑课/g, '逻辑思维'],
+  [/编成|编程课|变成/g, '编程'],
+  [/做文|坐文/g, '作文'],
+  [/专著|转注/g, '专注'],
+  [/画画|绘画|美术课/g, '美术']
+];
+function fixASR(t) {
+  let s = t || '';
+  ASR_FIX.forEach(([re, to]) => { s = s.replace(re, to); });
+  return s;
+}
+
+/* ---------- 火山引擎语音识别（本地代理） ---------- */
+const ASR = { url: 'http://127.0.0.1:8787/api/asr', ready: false, checked: false };
+async function asrProbe() {
+  ASR.checked = true;
+  try {
+    const r = await fetch(ASR.url.replace(/\/api\/asr\/?$/, '/health'), { cache: 'no-store' });
+    const j = await r.json();
+    ASR.ready = Boolean(j.configured);
+  } catch (e) {
+    ASR.ready = false;
+  }
+  return ASR.ready;
+}
+setTimeout(asrProbe, 500);
+
+async function blobToWav(blob) {
+  const buf = await blob.arrayBuffer();
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new Ctx();
+  const audio = await ctx.decodeAudioData(buf);
+  const chs = audio.numberOfChannels;
+  const len = audio.length;
+  const mix = new Float32Array(len);
+  for (let c = 0; c < chs; c++) {
+    const d = audio.getChannelData(c);
+    for (let i = 0; i < len; i++) mix[i] += d[i] / chs;
+  }
+  const rate = 16000;
+  const ratio = audio.sampleRate / rate;
+  const outLen = Math.max(1, Math.floor(len / ratio));
+  const out = new Int16Array(outLen);
+  for (let i = 0; i < outLen; i++) {
+    const pos = i * ratio;
+    const i0 = Math.floor(pos);
+    const frac = pos - i0;
+    const s0 = mix[Math.min(len - 1, i0)];
+    const s1 = mix[Math.min(len - 1, i0 + 1)];
+    const v = Math.max(-1, Math.min(1, s0 + (s1 - s0) * frac));
+    out[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
+  }
+  const ab = new ArrayBuffer(44 + out.length * 2);
+  const dv = new DataView(ab);
+  const wstr = (o, str) => { for (let i = 0; i < str.length; i++) dv.setUint8(o + i, str.charCodeAt(i)); };
+  wstr(0, 'RIFF'); dv.setUint32(4, 36 + out.length * 2, true); wstr(8, 'WAVE');
+  wstr(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  wstr(36, 'data'); dv.setUint32(40, out.length * 2, true);
+  new Int16Array(ab, 44).set(out);
+  await ctx.close();
+  return new Blob([ab], { type: 'audio/wav' });
+}
+
+async function startCloud(kind) {
+  if (voice.active && voice.mode === 'cloud') return stopCloud();
+  if (voice.active) return stopVoice();
+  if (!navigator.mediaDevices || !window.MediaRecorder) {
+    toast('这个浏览器不支持录音，请直接输入');
+    return;
+  }
+  let stream;
+  try {
+    if (!micStream || micStream.getAudioTracks().every(t => t.readyState !== 'live')) {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    }
+    stream = micStream;
+  } catch (e) {
+    toast('麦克风被拒绝，请在浏览器里允许后重试');
+    return;
+  }
+  const mr = new MediaRecorder(stream);
+  voice.recType = mr.mimeType || 'audio/webm';
+  voice.active = true;
+  voice.mode = 'cloud';
+  voice.mr = mr;
+  voice.kind = kind;
+  voice.chunks = [];
+  voice.t0 = Date.now();
+  voiceUI(kind, true, 0);
+  mr.ondataavailable = e => { if (e.data && e.data.size) voice.chunks.push(e.data); };
+  mr.onstop = async () => {
+    const k = voice.kind;
+    const chunks = voice.chunks || [];
+    clearInterval(voice.tick);
+    voice.active = false;
+    voice.mode = 'sr';
+    voice.mr = null;
+    /* 麦克风保持开启，避免每次录音都弹授权 */
+    voiceUI(k, false, 0);
+    if (!chunks.length) return toast('没录到声音，再点一次试试');
+    toast('正在识别…');
+    try {
+      const wav = await blobToWav(new Blob(chunks, { type: voice.recType || 'audio/webm' }));
+      const r = await fetch(ASR.url, { method: 'POST', headers: { 'content-type': 'audio/wav' }, body: wav });
+      const j = await r.json();
+      const text = fixASR(String(j.text || '').trim());
+      if (!text) throw new Error(j.error || '没听清，再说一次');
+      handleVoiceText(k, text);
+    } catch (err) {
+      toast('识别失败：' + (err.message || '网络错误'));
+    }
+  };
+  mr.start();
+  voice.tick = setInterval(() => {
+    const sec = Math.floor((Date.now() - voice.t0) / 1000);
+    voiceUI(kind, true, sec);
+    if (sec >= 30) stopCloud();
+  }, 500);
+}
+
+function stopCloud() {
+  if (voice.mr) { try { voice.mr.stop(); } catch (e) { /* ignore */ } }
+}
+
+async function startVoice(kind) {
+  if (voice.active && voice.mode === 'cloud') return stopCloud();
+  if (voice.active) return stopVoice();
+  if (!ASR.checked) await asrProbe();
+  if (ASR.ready) return startCloud(kind);
+  voice.mode = 'sr';
+  voice.active = true;
+  voice.kind = kind;
+  voice.t0 = Date.now();
+  voice.text = '';
+  voiceUI(kind, true, 0);
+  voice.tick = setInterval(() => {
+    const sec = Math.floor((Date.now() - voice.t0) / 1000);
+    voiceUI(kind, true, sec);
+    if (sec >= 15) stopVoice();
+  }, 500);
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return voice.sim = setTimeout(() => stopVoice(true), 1700);
+
+  try {
+    const rec = new SR();
+    rec.lang = 'zh-CN';
+    rec.interimResults = false;
+    rec.continuous = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = e => {
+      voice.text = e.results[0] ? e.results[0][0].transcript : '';
+    };
+    rec.onerror = () => {
+      if (!voice.text) {
+        toast('麦克风不可用，改用演示语音');
+        voice.text = '';
+        clearTimeout(voice.sim);
+        voice.sim = setTimeout(() => stopVoice(true), 1200);
+      }
+    };
+    rec.onend = () => { if (voice.active) stopVoice(); };
+    voice.rec = rec;
+    rec.start();
+  } catch (err) {
+    voice.sim = setTimeout(() => stopVoice(true), 1500);
+  }
+}
+
+function stopVoice(forceSample) {
+  if (!voice.active) return;
+  voice.active = false;
+  clearInterval(voice.tick);
+  clearTimeout(voice.sim);
+  const kind = voice.kind;
+  if (voice.rec) {
+    try { voice.rec.onend = null; voice.rec.stop(); } catch (e) { /* ignore */ }
+    voice.rec = null;
+  }
+  voiceUI(kind, false, 0);
+
+  let text = fixASR((voice.text || '').trim());
+  if (forceSample || !text) {
+    text = kind === 'city' ? '广州'
+      : kind === 'ticket' ? '上到第二节课孩子就不愿意去了，想问一下能不能退剩下的课时'
+        : SAMPLES[Math.floor(Math.random() * SAMPLES.length)];
+  }
+  handleVoiceText(kind, text);
+}
+
+function handleVoiceText(kind, text) {
+  if (kind === 'city') {
+    const parsed = parseUtter(text);
+    const val = parsed.city || text.replace(/[，。,. ]/g, '').slice(0, 8);
+    $('#city').value = val;
+    $('#city').classList.remove('filled');
+    void $('#city').offsetWidth;
+    $('#city').classList.add('filled');
+    let box = $('#cityConfirm');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'cityConfirm';
+      box.className = 'voice-echo';
+      $('#city').closest('.field').appendChild(box);
+    }
+    box.hidden = false;
+    box.innerHTML = `听到「${esc(val)}」。不准的话直接改，或 <button class="ve-again" type="button">重说</button>`;
+    box.querySelector('.ve-again').onclick = () => startVoice('city');
+    return;
+  }
+  if (kind === 'ticket') {
+    const ta = $('#ticketDesc');
+    ta.value = (ta.value ? ta.value + ' ' : '') + text;
+    toast('已转成文字，可直接修改');
+    return;
+  }
+  if (kind === 'refine') {
+    const ta = $('#rfText');
+    if (ta) ta.value = text;
+    const h = $('#rfHint');
+    if (h) h.textContent = '已转成文字，可修改后提交';
+    return;
+  }
+  if (kind === 'follow') {
+    const ta = $('#fuText');
+    if (ta) {
+      ta.value = (ta.value ? ta.value + ' ' : '') + text;
+      ta.dispatchEvent(new Event('input'));
+    }
+    const h = $('#fuHint');
+    if (h) h.textContent = '已转成文字，可继续补充或直接改';
+    return;
+  }
+
+  const p = parseUtter(text);
+  const filled = [];
+  if (p.age) {
+    $('#age').value = String(p.age);
+    flashField('#age');
+    filled.push(p.age + ' 岁');
+  }
+  if (p.city) {
+    $('#city').value = p.city;
+    flashField('#city');
+    filled.push(p.city);
+  }
+  if (p.grade) {
+    $('#grade').value = p.grade;
+    flashField('#grade');
+    filled.push(p.grade);
+  }
+  if (p.wants.length) {
+    $$('#wants .chip').forEach(c => c.classList.toggle('on', p.wants.includes(c.dataset.w)));
+    filled.push(p.wants.length + ' 项期望');
+  }
+
+  const echo = $('#voiceEcho');
+  echo.hidden = false;
+  if (filled.length >= 2) {
+    echo.className = 'voice-echo';
+    echo.innerHTML = `听到：${esc(text)}<br>（已填 ${filled.join('、')}）<br><button class="ve-again" type="button">不准，重说一次</button>`;
+    toast('语音建档完成，核对一下就能生成报告');
+  } else {
+    echo.className = 'voice-echo warn';
+    echo.innerHTML = `听到：${esc(text)}<br>只识别出「${filled.join('、') || '部分内容'}」，其余可以直接手填<br><button class="ve-again" type="button">重说一次</button>`;
+  }
+  const again = echo.querySelector('.ve-again');
+  if (again) again.onclick = () => startVoice(kind);
+}
+function flashField(sel) {
+  const el = $(sel);
+  el.classList.remove('filled');
+  void el.offsetWidth;
+  el.classList.add('filled');
+}
+
+/* ---------- 渲染：避雷报告 ---------- */
+function radarSVG(dims) {
+  const cx = 120, cy = 104, R = 66;
+  const pt = (i, r) => {
+    const a = (-90 + i * 60) * Math.PI / 180;
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+  };
+  const rings = [0.34, 0.67, 1].map(k => {
+    const pts = dims.map((_, i) => pt(i, R * k).map(n => n.toFixed(1)).join(',')).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="#E6E0CE" stroke-width="1"/>`;
+  }).join('');
+  const axes = dims.map((_, i) => {
+    const [x, y] = pt(i, R);
+    return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#EBE5D4" stroke-width="1"/>`;
+  }).join('');
+  const shape = dims.map((d, i) => pt(i, R * Math.max(0.14, d.v / 100)).map(n => n.toFixed(1)).join(',')).join(' ');
+  const dots = dims.map((d, i) => {
+    const [x, y] = pt(i, R * Math.max(0.14, d.v / 100));
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.4" fill="#1E6B57"/>`;
+  }).join('');
+  const labels = dims.map((d, i) => {
+    const [x, y] = pt(i, R + 21);
+    return `<text x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="middle" font-size="9" fill="#8C8F86">${d.k} ${d.v}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 240 208" width="240" height="208" role="img" aria-label="能力雷达图">${rings}${axes}<polygon points="${shape}" fill="rgba(30,107,87,.14)" stroke="#1E6B57" stroke-width="1.4" stroke-linejoin="round"/>${dots}${labels}</svg>`;
+}
+
+function renderReport() {
+  const pr = state.profile;
+  if (!pr) {
+    go(state.user ? 'form' : 'landing', { push: false });
+    return;
+  }
+  if (!state.report || !state.report.obs) {
+    go('assess', { push: false });
+    return;
+  }
+  const r = state.report;
+  $('#repMeta').innerHTML = `${r.date}<span class="sep"></span>${pr.age} 岁 · ${pr.city} · ${pr.grade}<span class="sep"></span>${r.stage.label}`;
+  $('#repTitle').innerHTML = `给 ${pr.age} 岁 · ${pr.grade}<br>的判断`;
+  $('#repLede').textContent = r.summary;
+  $('#repCount').textContent = `${r.evals.length} 项`;
+  $('#repAvoidCount').textContent = `共 ${r.avoid.length} 条`;
+
+  const tone = s => s >= 80 ? 'var(--jade)' : s >= 60 ? 'var(--amber)' : 'var(--clay)';
+  $('#repDims').innerHTML = r.dimensions.map(d => `
+    <div class="dim">
+      <div class="dim-k">${d.label}</div>
+      <div class="dim-v" style="color:${tone(d.score)}">${d.score}<small>/100</small></div>
+      <div class="dim-bar"><i style="width:${d.score}%;background:${tone(d.score)}"></i></div>
+      <div class="dim-n">${esc(d.note)}</div>
+    </div>`).join('');
+
+  $('#repStale').hidden = r.session === SESSION;
+  $('#repRedo').onclick = () => go('assess');
+  const follow = r.follow || [];
+  $('#repFollowBlock').hidden = follow.length === 0;
+  const fuN = $('#repFollowBlock .n');
+  if (fuN) fuN.textContent = follow.length + ' 轮';
+  $('#repFollow').innerHTML = follow.map((f, i) => `
+    <div class="fu-row">
+      <div class="fu-q">简答 ${i + 1}｜${esc(f.q)}</div>
+      <div class="fu-a">${esc(f.a || '未填写')}${f.img ? '<small>附 1 张图片</small>' : ''}</div>
+    </div>`).join('');
+  $('#repStage').innerHTML = `
+    <p><b>${esc(r.stage.label)}：</b>${esc(r.stage.traits)}</p>
+    <p>${esc(r.stage.task)}</p>`;
+
+  if (r.radar && r.radar.length) {
+    $('#repRadar').innerHTML = radarSVG(r.radar);
+    $('#repRadarRead').innerHTML = r.radarRead;
+    $('#repTraits').innerHTML = r.traits.map(t => `
+      <div class="trait-row">
+        <div class="trait-k">${t.k}</div>
+        <div class="trait-v">${esc(t.v)}<span class="trait-tag ${t.tag}">${t.tagText}</span><small>${esc(t.note)}</small></div>
+      </div>`).join('');
+  }
+
+  const ob = r.obs;
+  if (ob) {
+    $('#repEvidN').textContent = '家长 6 题 · 孩子 4 题';
+    const obsBits = [
+      ob.focusAsked ? `能做喜欢的事 ${ob.attentionMin} 分钟` : `专注按 ${ob.attentionMin} 分钟估算`,
+      ob.remindText ? `写作业需提醒「${ob.remindText}」` : '',
+      `遇难题「${ob.persistText}」`
+    ].filter(Boolean).join(' · ');
+    const timeBits = [
+      `每周可安排 ${ob.cap} 个时段`,
+      ob.gapText,
+      ob.screenScore === 1.5 ? '屏幕未单独测' : `每天屏幕「${ob.screenText}」`
+    ].join(' · ');
+    $('#repEvid').innerHTML = [
+      ['家长观察', obsBits],
+      ['时间与节奏', timeBits],
+      ['孩子自评', `最喜欢「${ob.favoriteText}」 · 不会的题「${ob.childPersistText}」`]
+    ].map(([k, v]) => `<div class="evid-row"><div class="evid-k">${k}</div><div class="evid-v">${esc(v)}</div></div>`).join('');
+  } else {
+    $('#repEvidN').textContent = '未测评';
+    $('#repEvid').innerHTML = `<div class="evid-row"><div class="evid-v">这份报告没有测评数据，结论来自年龄和期望的通用规则。建议回上一页补做 10 道题。</div></div>`;
+  }
+
+  $('#repEvals').innerHTML = r.evals.map(e => `
+    <div class="eval">
+      <div class="eval-top">
+        <span class="eval-w">${esc(e.w)}</span>
+        <span class="eval-tag ${e.status}">${esc(e.label)}</span>
+      </div>
+      <p class="eval-why">${esc(e.why)}</p>
+      <div class="eval-act"><span>${esc(e.action)}</span></div>
+    </div>`).join('');
+
+  $('#repAvoid').innerHTML = r.avoid.map((a, i) => `
+    <div class="avoid-item">
+      <span class="idx">0${i + 1}</span>
+      <h3>${esc(a.t)}</h3>
+      <p>${esc(a.r)}</p>
+    </div>`).join('');
+
+  $('#repDirs').innerHTML = r.dirs.map(d => `<span class="tag-g">${esc(d)}</span>`).join('');
+  $('#repPost').innerHTML = r.postpone.map(t => `<span class="tag-s">${esc(t)}</span>`).join('');
+  $('#repAdvice').innerHTML = r.advice;
+}
+
+/* ---------- 渲染：匹配推荐 ---------- */
+function cardHTML(item, idx, layer) {
+  const { p, risk, score } = item;
+  const pr = state.profile;
+  const color = AVATAR_COLORS[PRODUCTS.findIndex(x => x.id === p.id) % AVATAR_COLORS.length];
+  const reason = fillReason(p, pr);
+  const want = pr.wants.find(w => p.wants.includes(w)) || p.cat;
+  const mode = modeOf(p);
+  const band = priceBand(p.price);
+  const dim = (state.report.radar || []).find(d => d.k === TRACE_DIM[p.cat]);
+  const dimPart = dim ? ` · 对应「${dim.k} ${dim.v}」` : '';
+
+  return `
+  <article class="p-card">
+    <div class="p-top">
+      <span class="avatar" style="background:${color}">${esc(locOrg(p).slice(0, 1))}</span>
+      <span class="p-org">${esc(locOrg(p))}</span>
+      <span class="match ${layer === 'high' && idx === 0 ? 'rank1' : ''}">${p.prep ? '同方向先铺垫' : layer === 'high' ? (idx === 0 ? '最匹配' : '高优 ' + score) : '备选 ' + score}</span>
+    </div>
+    <h3 class="p-name">${esc(locName(p))}</h3>
+    <p class="p-cat">${p.prep ? '先铺垫 · ' : ''}${esc(p.cat)} · 适龄 ${p.age[0]}–${p.age[1]} 岁 · ${mode} · ${band}价位</p>
+    <div class="p-price">
+      <b><i>¥</i>${money(p.price)}</b>
+      <s>¥${money(p.list)}</s>
+      <span class="save">省 ${money(p.list - p.price)}</span>
+    </div>
+    <div class="p-tags">${p.tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>
+    <p class="p-reason">${esc(reason)}</p>
+    <p class="p-trace">依据：期望「${esc(want)}」 · 价位${band} · ${mode} · 匹配 ${score}${dimPart}</p>
+    ${p.promo ? `<div class="p-promo">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7M2 7h20v5H2zM12 22V7M12 7S9 2 6.5 4s1 3 5.5 3zM12 7s3-5 5.5-3-1 3-5.5 3z"/></svg>
+      ${esc(p.promo)}
+    </div>` : ''}
+    <div class="p-foot">
+      <button class="p-rate" type="button" data-rev="${p.id}">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.5 7 .9-5 4.9 1.2 7L12 18l-6.2 3.3L7 14.3 2 9.4l7-.9L12 2z"/></svg>
+        ${p.rate} · ${p.cnt} 条真实评价
+      </button>
+      <button class="p-btn" type="button" data-buy="${p.id}">立即报名</button>
+    </div>
+  </article>`;
+}
+
+const NEAR = {
+  '数学提分': ['逻辑思维', '编程', '专注力'],
+  '英语启蒙': ['逻辑思维', '美术'],
+  '逻辑思维': ['数学提分', '编程'],
+  '编程': ['逻辑思维', '数学提分'],
+  '作文': ['英语启蒙', '美术'],
+  '书法': ['美术', '专注力'],
+  '美术': ['书法', '作文'],
+  '专注力': ['书法', '逻辑思维'],
+  '游泳': ['专注力']
+};
+function buildRec(pr) {
+  const prefs = pr.prefs || {};
+  const adj = x => {
+    let b = 0;
+    const m = modeOf(x.p);
+    if (prefs.online && m.includes('线上')) b += 12;
+    if (prefs.offline && m === '线下') b += 12;
+    if (prefs.cheap) b += x.p.price <= 2000 ? 14 : x.p.price <= 3500 ? 6 : 0;
+    if ((NEAR[pr.wants[0]] || []).includes(CAT_WANT[x.p.cat])) b += 10;
+    if (x.p.local) b += 10;
+    return b;
+  };
+  const all = PRODUCTS.map(p => ({ p, risk: riskOf(p, pr), score: scoreOf(p, pr), rank: scoreOf(p, pr) + adj({ p, score: scoreOf(p, pr) }) }));
+  const ok = all.filter(x => !x.risk)
+    .filter(x => !x.p.prep || pr.wants.includes(CAT_WANT[x.p.cat]))
+    .sort((a, b) => b.rank - a.rank);
+  const primary = ok.filter(x => CAT_WANT[x.p.cat] === pr.wants[0]);
+  const others = ok.filter(x => CAT_WANT[x.p.cat] !== pr.wants[0]);
+  const pickDiverse = (list, n) => {
+    const out = [], bands = new Set(), modes = new Set();
+    for (const x of list) {
+      if (out.length >= n) break;
+      const b = priceBand(x.p.price), m = modeOf(x.p);
+      if (out.length === 0 || !bands.has(b) || !modes.has(m)) { out.push(x); bands.add(b); modes.add(m); }
+    }
+    for (const x of list) { if (out.length < n && !out.includes(x)) out.push(x); }
+    return out;
+  };
+  let high = pickDiverse(primary, 3);
+  if (high.length < 3) high = high.concat(pickDiverse(others, 3 - high.length));
+  const rest = pickDiverse(ok.filter(x => !high.includes(x)), 2);
+  return { high, rest, risks: all.filter(x => x.risk), primaryCount: primary.length };
+}
+
+function ensureSeq() {
+  let n = +localStorage.getItem('blz_seq');
+  if (!n) { n = 8000 + Math.floor(Math.random() * 500); localStorage.setItem('blz_seq', n); }
+  return n;
+}
+
+function renderRec() {
+  const pr = state.profile;
+  if (!pr) return go('form', { push: false });
+  if (!state.report || !state.report.obs) return go('assess', { push: false });
+  clearTimeout(recTimer);
+  const data = $('#recData'), main = $('#recMain');
+  $('#rdNum').textContent = '128,463';
+  $('#rdSeq').innerHTML = `避雷星第 <b>${money(ensureSeq())}</b> 位家园入住`;
+  if (recShown) {
+    data.style.display = 'none';
+    main.style.display = '';
+    renderRecBody();
+    return;
+  }
+  data.style.display = '';
+  main.style.display = 'none';
+  recTimer = setTimeout(() => {
+    recShown = true;
+    data.style.display = 'none';
+    main.style.display = '';
+    renderRecBody();
+  }, 1400);
+}
+
+function renderRecBody() {
+  const pr = state.profile;
+  const { high, rest, risks } = buildRec(pr);
+  $('#recWant').textContent = pr.wants[0];
+  $('#recTitle').innerHTML = '3 个高优匹配 + 2 个备选';
+  $('#recWarn').innerHTML = `固定 5 个，不多推：前 3 个按匹配度优先，并尽量拉开价位与线上线下；后 2 个是备选。<br>本轮另有 <b>${risks.length} 门</b>命中雷区，没放进推荐，但下面照样列出。`;
+  const ev = state.report.evals.find(e => e.w === pr.wants[0]);
+  if (ev && ev.status !== 'go') {
+    const hasPrep = [...high, ...rest].some(x => x.p.prep);
+    $('#recWarn').innerHTML = hasPrep
+      ? `你想解决的「<b>${esc(pr.wants[0])}</b>」现在不建议直接上正式班，所以前 3 个里先给你<b>同方向的先铺垫课</b>，其余是同阶段方案。<br>这 ${risks.length} 门命中雷区的课没放进推荐，列在下面。`
+      : `你想解决的「<b>${esc(pr.wants[0])}</b>」在报告里是「${ev.status === 'no' ? '还太早' : '先铺垫'}」，本轮 5 个方案来自同阶段的相邻方向。<br>仍有 <b>${risks.length} 门</b>命中雷区，列在下面。`;
+  }
+  if (pr.prefs && (pr.prefs.online || pr.prefs.offline || pr.prefs.cheap)) {
+    const bits = [pr.prefs.online && '线上优先', pr.prefs.offline && '线下优先', pr.prefs.cheap && '低价优先'].filter(Boolean);
+    $('#recWarn').innerHTML += `<br><span style="color:var(--jade)">已按你补充的需求调整：${bits.join(' · ')}</span>`;
+  }
+  if (pr.holdOff) {
+    $('#recWarn').innerHTML += `<br><span style="color:var(--jade)">追问里你选了「先不报」，这 5 个只作对比，不用现在下单。</span>`;
+  }
+  $('#recHigh').innerHTML = high.map((x, i) => cardHTML(x, i, 'high')).join('');
+  $('#recRest').innerHTML = rest.map((x, i) => cardHTML(x, i + 3, 'rest')).join('');
+  $('#recRiskWrap').innerHTML = risks.length ? `
+    <details class="risk-fold">
+      <summary>本轮没有推给你的 ${risks.length} 门课（含雷区）</summary>
+      ${risks.map(x => `<div class="risk-item"><b>${esc(locOrg(x.p))} · ${esc(locName(x.p))}</b><span>${esc(riskOf(x.p, pr))}</span></div>`).join('')}
+    </details>` : '';
+  $$('#s-recommend [data-rev]').forEach(b => { b.onclick = () => openReviews(b.dataset.rev); });
+  $$('#s-recommend [data-buy]').forEach(b => { b.onclick = () => openBuy(b.dataset.buy); });
+  renderRuleCheck({ high, rest });
+}
+
+function renderRuleCheck({ high, rest }) {
+  const all = [...high, ...rest];
+  const bands = new Set(all.map(x => priceBand(x.p.price)));
+  const modes = new Set(all.map(x => modeOf(x.p)));
+  const minScore = high.length ? Math.min(...high.map(x => x.score)) : 0;
+  const checks = [
+    { name: '决策路径清晰无歧义', ok: high.length === 3 && rest.length === 2, value: `${high.length} + ${rest.length} = ${all.length}` },
+    { name: '匹配度达阈值（≥50）', ok: minScore >= 50, value: `最低 ${minScore}` },
+    { name: '转化效率：价位与模式有差异', ok: bands.size >= 2 && modes.size >= 2, value: `${bands.size} 档价位 · ${modes.size} 种模式` },
+    { name: '专业度：每条理由可追溯', ok: all.length === 5, value: `${all.length}/5 条` }
+  ];
+  $('#ruleRows').innerHTML = checks.map(c => `<div class="rule-row ${c.ok ? '' : 'bad'}"><i>${c.ok ? '✓' : '!'}</i>${c.name}<span>${c.value}</span></div>`).join('');
+  $('#ruleSum').textContent = checks.every(c => c.ok) ? '全部达标' : '有项未达标';
+}
+
+/* ---------- 需求补充 ---------- */
+const WANT_KEYS = [
+  ['数学', '数学提分'], ['算术', '数学提分'], ['英语', '英语启蒙'], ['思维', '逻辑思维'],
+  ['逻辑', '逻辑思维'], ['编程', '编程'], ['游泳', '游泳'], ['美术', '美术'], ['画画', '美术'],
+  ['书法', '书法'], ['写字', '书法'], ['作文', '作文'], ['写作', '作文'], ['专注', '专注力']
+];
+function matchWant(text) {
+  const hit = WANT_KEYS.find(([k]) => text.includes(k));
+  return hit ? hit[1] : '';
+}
+function refinePrefs(text) {
+  return {
+    cheap: /便宜|性价比|预算|价格|省钱|实惠/.test(text),
+    online: /线上|网课|在家上/.test(text),
+    offline: /线下|接送|离家|面授/.test(text)
+  };
+}
+function applyRefine(text) {
+  const pr = state.profile;
+  const hit = matchWant(text);
+  pr.extra = text;
+  pr.prefs = refinePrefs(text);
+  if (hit) pr.wants = [hit];
+  state.report = buildReport(pr);
+  save();
+  sheetClose();
+  recShown = true;
+  $('#recData').style.display = 'none';
+  $('#recMain').style.display = '';
+  renderRecBody();
+  $('#s-recommend').scrollTop = 0;
+  toast(hit ? `已按「${hit}」重新甄选，仍是固定 5 个` : '已记录补充需求，报告与推荐已更新', 2600);
+}
+function openSwitch() {
+  const pr = state.profile;
+  const list = ['数学提分', '英语启蒙', '逻辑思维', '编程', '游泳', '美术', '书法', '作文', '专注力'];
+  sheetOpen('换个方向', '只选一个最想先解决的，报告和 5 个方案会一起重算', `
+    <div class="chips" id="swChips" style="margin-bottom:16px">
+      ${list.map(w => `<button class="chip ${pr.wants[0] === w ? 'on' : ''}" type="button" data-w="${w}">${w}</button>`).join('')}
+    </div>
+    <p class="tiny">换方向会清掉之前「需求补充」里的偏好，测评答案保留。</p>`);
+  $$('#swChips .chip').forEach(c => { c.onclick = () => switchWant(c.dataset.w); });
+}
+function switchWant(w) {
+  const pr = state.profile;
+  pr.wants = [w];
+  pr.extra = '';
+  pr.prefs = null;
+  state.report = buildReport(pr);
+  save();
+  sheetClose();
+  if (cur === 'report') return go('recommend', { push: false });
+  renderRecBody();
+  $('#s-recommend').scrollTop = 0;
+  toast(`已切换到「${w}」，重新甄选 5 个`, 2400);
+}
+
+function openRefine() {
+  sheetOpen('需求补充', '说清楚「还差什么」，会重新生成报告并重新甄选 5 个', `
+    <div class="refine-box">
+      <textarea id="rfText" maxlength="120" placeholder="例如：想找便宜一点的线上课，最好每周一次"></textarea>
+      <div class="refine-mic">
+        <button type="button" id="rfMic">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/></svg>
+          语音补充
+        </button>
+        <span id="rfHint">也可以直接打字</span>
+      </div>
+      <button class="btn primary" id="rfSubmit">重新甄选 5 个</button>
+      <p class="tiny" style="margin-top:10px">只会更新报告与推荐，不会产生订单。</p>
+    </div>`);
+  const ta = $('#rfText');
+  const mic = $('#rfMic');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  mic.onclick = async () => {
+    if (voice.active && voice.mode === 'cloud') return stopCloud();
+    if (!ASR.checked) await asrProbe();
+    if (ASR.ready) return startCloud('refine');
+    if (!SR) {
+      ta.value = '想再找一个便宜点的线上数学课';
+      $('#rfHint').textContent = '当前浏览器不支持语音，已填入示例';
+      return;
+    }
+    const r = new SR();
+    r.lang = 'zh-CN';
+    r.interimResults = false;
+    r.continuous = false;
+    r.maxAlternatives = 3;
+    mic.classList.add('on');
+    $('#rfHint').textContent = '在听…说完会自动停';
+    r.onresult = e => {
+      const alts = [...(e.results[0] || [])];
+      const hit = alts.find(a => WANT_KEYS.some(([k]) => a.transcript.includes(k))) || alts[0];
+      ta.value = hit ? fixASR(hit.transcript) : '';
+    };
+    r.onerror = () => { ta.value = '想再找一个便宜点的线上数学课'; };
+    r.onend = () => { mic.classList.remove('on'); $('#rfHint').textContent = '已转成文字，可修改后提交'; };
+    r.start();
+  };
+  $('#rfSubmit').onclick = () => {
+    const txt = ta.value.trim();
+    if (!txt) return toast('先写一句，或点语音补充');
+    applyRefine(txt);
+  };
+}
+
+function openReviews(pid) {
+  const p = PRODUCTS.find(x => x.id === pid);
+  const html = `
+    <div class="rv-sum">
+      <b>${p.rate}</b>
+      <small>${p.cnt} 条已购家长评价<br>只有完成订单的账号可以写评价</small>
+    </div>
+    ${p.reviews.map(r => `
+      <div class="rv">
+        <div class="rv-av">家</div>
+        <div class="rv-main">
+          <div class="rv-top">
+            <span class="rv-user">${esc(r.u)}</span>
+            <span class="stars">${'★'.repeat(r.r)}<span class="off">${'☆'.repeat(5 - r.r)}</span></span>
+          </div>
+          <p class="rv-text">${esc(r.c)}</p>
+          <div class="rv-date">${r.d} · 已完课</div>
+        </div>
+      </div>`).join('')}
+    <p class="tiny" style="margin-top:14px">评价来自完成订单的家长，平台不删除差评，也不接受机构修改。</p>
+  `;
+  sheetOpen(`${locOrg(p)} · 真实评价`, `${locName(p)}`, html);
+}
+
+/* ---------- 下单（演示 mock） ---------- */
+function openBuy(pid) {
+  const p = PRODUCTS.find(x => x.id === pid);
+  if (riskOf(p, state.profile)) return toast('这门课在你孩子这个阶段不建议报');
+  const html = `
+    <div class="order-card" style="margin-bottom:12px">
+      <div class="order-row"><span>课程</span><span>${esc(locName(p))}</span></div>
+      <div class="order-row"><span>机构</span><span>${esc(locOrg(p))}</span></div>
+      <div class="order-row"><span>原价</span><span style="text-decoration:line-through;color:var(--ink3)">¥${money(p.list)}</span></div>
+      <div class="order-row"><span>平台专属优惠</span><span style="color:var(--clay)">-¥${money(p.list - p.price)}</span></div>
+      <div class="order-row total"><span>应付（演示）</span><span>¥${money(p.price)}</span></div>
+    </div>
+    <div class="rec-note" style="margin-bottom:0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="flex:0 0 14px;margin-top:2px"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>演示环境，<b>不会真实扣款</b>。确认后生成订单，并同步到管理后台与供应商后台。</span>
+    </div>
+    <button class="btn primary" id="confirmBuy">确认报名 · ¥${money(p.price)}</button>
+  `;
+  sheetOpen('确认报名', `${locOrg(p)} · ${locName(p)}`, html);
+  $('#confirmBuy').onclick = () => {
+    createOrder(p);
+    sheetClose();
+    go('success');
+  };
+}
+
+function createOrder(p) {
+  const rate = 0.12 + (PRODUCTS.findIndex(x => x.id === p.id) % 4) * 0.03;
+  const o = {
+    id: 'BLZ' + String(Date.now()).slice(-8),
+    phone: state.phone || (state.user && state.user.phone) || '',
+    pid: p.id,
+    name: locName(p),
+    org: locOrg(p),
+    amount: p.price,
+    listPrice: p.list,
+    commission: Math.round(p.price * rate),
+    status: '已支付（演示）',
+    time: fmtTime()
+  };
+  state.orders.unshift(o);
+  save();
+  toast('订单已生成，已同步到机构后台');
+}
+
+function renderSuccess() {
+  const o = state.orders[0];
+  if (!o) return go('recommend', { push: false });
+  $('#orderCard').innerHTML = `
+    <div class="order-row"><span>订单号</span><span>${o.id}</span></div>
+    <div class="order-row"><span>课程</span><span>${esc(o.name)}</span></div>
+    <div class="order-row"><span>机构</span><span>${esc(o.org)}</span></div>
+    <div class="order-row"><span>手机号</span><span>${o.phone}</span></div>
+    <div class="order-row"><span>状态</span><span style="color:var(--jade)">${o.status}</span></div>
+    <div class="order-row total"><span>金额</span><span>¥${money(o.amount)}</span></div>
+  `;
+}
+
+/* ---------- 渲染：成长档案 ---------- */
+function renderGrowth() {
+  const pr = state.profile;
+  const box = $('#profCard');
+  const tl = $('#timeline');
+
+  if (!pr) {
+    box.innerHTML = `
+      <p class="prof-label">孩子画像</p>
+      <p class="prof-name">还没有建档</p>
+      <div class="prof-chips"><span>答完 4 个问题后生成</span></div>
+      <div class="prof-bar"><i style="width:0%"></i></div>
+      <div class="prof-foot"><span>档案完整度 0%</span><span>0 次报名</span></div>`;
+    tl.innerHTML = `<div class="empty-note">先完成一次诊断，档案会从今天开始记。</div>`;
+    return;
+  }
+
+  let pct = 40;
+  if (state.report) pct += 25;
+  if (state.orders.length) pct += 20;
+  if (state.tickets.length) pct += 5;
+  pct = Math.min(pct, 95);
+
+  box.innerHTML = `
+    <p class="prof-label">孩子画像 · 仅你可看</p>
+    <p class="prof-name">${pr.age} 岁 · ${pr.grade}</p>
+    <div class="prof-chips">
+      <span>${esc(pr.city)}</span>
+      ${pr.wants.map(w => `<span>${esc(w)}</span>`).join('')}
+    </div>
+    <div class="prof-bar"><i style="width:${pct}%"></i></div>
+    <div class="prof-foot"><span>档案完整度 ${pct}%</span><span>${state.orders.length} 次报名</span></div>`;
+
+  const items = [];
+  if (state.report) {
+    items.push({
+      dot: '', date: (state.report.date || '').replace(/\./g, '-') + ' · 今天',
+      title: '完成建档，生成避雷报告',
+      desc: `先放一放：<b>${esc(state.report.postpone[0] || '—')}</b>；可以走的方向 ${state.report.dirs.length} 个。`
+    });
+    if (state.orders.length === 0) {
+      items.push({
+        dot: 'amber', date: '待定',
+        title: '还没有报名',
+        desc: '报告不会催你下单。想清楚了再从匹配列表里选。'
+      });
+    }
+  }
+  state.orders.forEach(o => {
+    items.push({
+      dot: 'clay', date: o.time,
+      title: '报名 ' + o.name,
+      desc: `${o.org} · 平台专属价 <b>¥${money(o.amount)}</b><br>订单 ${o.id}`
+    });
+  });
+  state.tickets.forEach(t => {
+    items.push({
+      dot: 'amber', date: t.time,
+      title: `发起售后 · ${t.type}`,
+      desc: `工单 ${t.id} · 当前状态 <b>${t.status}</b>`
+    });
+  });
+
+  tl.innerHTML = items.map(it => `
+    <div class="tl-item">
+      <span class="tl-dot ${it.dot}"></span>
+      <div class="tl-body">
+        <div class="tl-date">${it.date}</div>
+        <h4 class="tl-title">${esc(it.title)}</h4>
+        <p class="tl-desc">${it.desc}</p>
+      </div>
+    </div>`).join('');
+}
+
+/* ---------- 渲染：售后 ---------- */
+function renderAftersale() {
+  const o = state.orders[0];
+  if (o) {
+    $('#orderPickName').textContent = o.name;
+    $('#orderPickMeta').textContent = `${o.id} · ¥${money(o.amount)} · ${o.status}`;
+  } else {
+    $('#orderPickName').textContent = '还没有订单';
+    $('#orderPickMeta').textContent = '报名课程后可发起退费 / 投诉';
+  }
+  renderFiles();
+  renderTickets();
+}
+
+function renderFiles() {
+  $('#fileChips').innerHTML = state.files.map((f, i) => `
+    <span class="file-chip">${esc(f)}<button type="button" data-del="${i}" aria-label="移除">×</button></span>
+  `).join('');
+  $$('#fileChips [data-del]').forEach(b => {
+    b.onclick = () => { state.files.splice(+b.dataset.del, 1); renderFiles(); };
+  });
+}
+
+function statusClass(s) {
+  if (s === '已解决' || s === '已关闭') return 'done';
+  if (s === '处理中') return 'doing';
+  return '';
+}
+
+function renderTickets() {
+  const label = $('#ticketListLabel');
+  const list = $('#ticketList');
+  if (!state.tickets.length) {
+    label.hidden = true;
+    list.innerHTML = '';
+    return;
+  }
+  label.hidden = false;
+  list.innerHTML = state.tickets.map(t => {
+    const step2 = t.status !== '待处理';
+    const step3 = t.status === '已解决' || t.status === '已关闭';
+    return `
+    <div class="ticket">
+      <div class="ticket-top">
+        <b>${t.type} · ${t.id}</b>
+        <span class="status ${statusClass(t.status)}">${t.status}</span>
+      </div>
+      <p class="ticket-desc">${esc(t.desc)}</p>
+      <div class="ticket-steps">
+        <i class="on"></i><span>已提交</span>
+        <i class="${step2 ? 'on' : ''}"></i><span>平台处理中</span>
+        <i class="${step3 ? 'on' : ''}"></i><span>已解决</span>
+      </div>
+      <p class="tiny" style="margin-top:9px">${t.time} 提交${t.files.length ? ' · 附件 ' + t.files.length + ' 个' : ''}</p>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- 测评流程：动态出题 + 家长/孩子分段 ---------- */
+let asAnswers = null;
+let asOrder = [];
+let asFollow = null;
+let asFuIdx = 0;
+let asFuPick = null;
+let asPhase = 'intro';
+let asQid = null;
+let asLock = false;
+let asCount = 0;
+
+function renderAssess() {
+  try { speechSynthesis.cancel(); } catch (e) { }
+  asLock = false;
+  const answers = asAnswers || {};
+  asCount = Object.keys(answers).length;
+  $('#asBar').style.width = Math.min(100, asCount / 10 * 100) + '%';
+  const body = $('#asBody');
+
+  if (asPhase === 'intro') {
+    $('#asBar').style.width = '0%';
+    const pr = state.profile || { age: 6, grade: '一年级' };
+    body.innerHTML = `
+      <p class="kicker">STEP 3 / 4 · 测评</p>
+      <h1 class="as-q" style="font-size:26px;margin-bottom:10px">先测，再给建议</h1>
+      <p class="sub">不用固定问卷。每答一题，下一题会按你刚选的内容变——${pr.age} 岁孩子在意的东西，和 10 岁不一样。</p>
+      <div class="as-intro-kv">
+        <div><b class="p">家长填写 · 9 题</b><span>6 道选择：一对一需求、活跃度、自主性、遇挫反应、可安排时段、屏幕或入学节奏；3 道简答：可打字、语音，也可以拍照上传试卷让我们看</span></div>
+        <div><b class="c">孩子回答 · 4 题</b><span>最喜欢的课、遇到难题的反应、最想带走什么、周末想做什么；选到书法或思维会追加专项题</span></div>
+      </div>
+      <button class="btn primary" id="asStart">开始测评</button>
+      <p class="as-foot">家长一次做完 9 题，再把手机交给孩子做剩下的 4 题，不用来回交接。</p>
+    `;
+    $('#asStart').onclick = () => {
+      asAnswers = {};
+      asOrder = [];
+      asFollow = null;
+      asFuIdx = 0;
+      asFuPick = null;
+      asQid = nextQuestion(asAnswers);
+      if (asQid) asOrder.push(asQid);
+      asPhase = 'parent';
+      renderAssess();
+    };
+    return;
+  }
+
+  if (asPhase === 'handoff') {
+    body.innerHTML = `
+      <div class="as-handoff">
+        <div class="ho-ico">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+        </div>
+        <h2>家长部分完成</h2>
+        <p>6 道选择 + 3 道简答都记下了，后面不用再拿手机。<br>剩下 4 题交给孩子，你只读题，怎么选都不算错。</p>
+        <button class="btn primary" id="asGoChild">把手机交给孩子 →</button>
+        <div style="margin-top:14px"><button class="as-back" type="button" id="asBackHandoff">← 返回上一题修改</button></div>
+      </div>`;
+    $('#asGoChild').onclick = () => { asPhase = 'child'; renderAssess(); };
+    $('#asBackHandoff').onclick = () => {
+      if (asFollow) { asFuIdx = Math.max(0, asFollow.length - 1); asPhase = 'follow'; renderAssess(); return; }
+      const lastParent = asOrder.slice().reverse().find(k => ASK[k] && ASK[k].who === 'parent');
+      asQid = lastParent || 'oneonone';
+      asPhase = 'parent';
+      renderAssess();
+    };
+    return;
+  }
+
+  if (asPhase === 'follow') {
+    const f = asFollow[asFuIdx];
+    const saved = f.answer || '';
+    body.innerHTML = `
+      <p class="kicker" style="margin-bottom:10px">简答 · ${asFuIdx + 1} / 3</p>
+      <div class="as-why"><b>为什么问你：</b>${f.why}</div>
+      <div class="as-q-row">
+        <h1 class="as-q">${esc(f.q)}</h1>
+        <button class="speak" type="button" id="asSpeak" aria-label="朗读题目">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8 8 0 0 1 0 12"/></svg>
+        </button>
+      </div>
+      <textarea class="fu-text fu-big" id="fuText" maxlength="200" placeholder="${esc(f.ph)}">${esc(saved)}</textarea>
+      <div class="fu-tools">
+        <button class="fu-mic" type="button" id="fuMic">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+          语音回答
+        </button>
+        <label class="fu-mic" for="fuFile">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/><circle cx="12" cy="12.5" r="3.2"/></svg>
+          拍照 / 上传
+        </label>
+        <input id="fuFile" type="file" accept="image/*" hidden>
+        <span id="fuHint">可以直接打字，也可以语音，或拍试卷让我们看</span>
+      </div>
+      <div class="fu-preview" id="fuPreview" hidden>
+        <img id="fuImg" alt="上传的图片">
+        <div class="fu-pv-meta">
+          <span id="fuOcrHint">识别中…</span>
+          <button type="button" id="fuRemove">移除</button>
+        </div>
+      </div>
+      <button class="btn primary fu-next" id="fuNext" ${saved.trim().length >= 2 ? '' : 'disabled'}>${asFuIdx >= 2 ? '生成避雷报告' : '下一题'} →</button>
+      <div class="as-nav">
+        <button class="as-back" type="button" id="asBack" ${asFuIdx === 0 ? 'disabled' : ''}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          上一题
+        </button>
+        <button class="fu-skip" type="button" id="fuSkip">这题跳过</button>
+      </div>
+    `;
+    const ta = $('#fuText');
+    const next = $('#fuNext');
+    ta.oninput = () => { next.disabled = ta.value.trim().length < 2; };
+    $('#asSpeak').onclick = speakCurrent;
+    $('#fuMic').onclick = () => startVoice('follow');
+    $('#fuFile').onchange = async ev => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      $('#fuPreview').hidden = false;
+      $('#fuImg').src = URL.createObjectURL(file);
+      $('#fuOcrHint').textContent = '识别中…（本地 OCR，约 2 秒）';
+      f.img = true;
+      try {
+        const r = await fetch(ASR.url.replace(/\/api\/asr\/?$/, '/api/ocr'), { method: 'POST', headers: { 'content-type': file.type || 'application/octet-stream' }, body: file });
+        const j = await r.json();
+        if (j.text && j.text.trim()) {
+          const t = j.text.trim().replace(/\n+/g, '；').slice(0, 180);
+          f.ocr = t;
+          ta.value = (ta.value ? ta.value + '\n' : '') + '（图片内容）' + t;
+          ta.dispatchEvent(new Event('input'));
+          $('#fuOcrHint').textContent = '已识别，文字已加到上面，可删改';
+        } else {
+          $('#fuOcrHint').textContent = '图片已附上，但没识别出文字';
+        }
+      } catch (e) {
+        $('#fuOcrHint').textContent = '图片已附上（本地 OCR 未启动）';
+      }
+    };
+    $('#fuRemove').onclick = () => {
+      $('#fuPreview').hidden = true;
+      $('#fuImg').removeAttribute('src');
+      f.img = false; f.ocr = '';
+      $('#fuFile').value = '';
+    };
+    $('#asBack').onclick = () => {
+      if (asFuIdx === 0) return;
+      f.answer = ta.value.trim();
+      asFuIdx--;
+      renderAssess();
+    };
+    const done = () => {
+      f.answer = ta.value.trim();
+      if (asFuIdx >= 2) { asPhase = 'handoff'; renderAssess(); return; }
+      asFuIdx++;
+      renderAssess();
+    };
+    $('#fuSkip').onclick = done;
+    next.onclick = done;
+    return;
+  }
+
+  const q = ASK[asQid];
+  const isParent = q.who === 'parent';
+  const total = isParent ? 6 : 4;
+  const idx = asOrder.filter(k => ASK[k].who === q.who).length;
+  const prev = asAnswers[asQid];
+  body.innerHTML = `
+    <div class="as-who ${isParent ? 'parent' : 'child'}"><i></i>${isParent ? '家长填写' : '孩子回答'} · ${Math.min(idx, total)}/${total}</div>
+    <div class="as-q-row">
+      <h1 class="as-q">${esc(q.t)}</h1>
+      <button class="speak" type="button" id="asSpeak" aria-label="朗读题目">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8 8 0 0 1 0 12"/></svg>
+      </button>
+    </div>
+    <p class="as-hint">${esc(q.hint || '')}</p>
+    <div class="as-opts">
+      ${q.opts.map((o, i) => `<button class="as-opt ${prev && prev.l === o.l ? 'on' : ''}" type="button" data-i="${i}"><span class="k">${i + 1}</span>${esc(o.l)}</button>`).join('')}
+    </div>
+    <p class="as-foot">${isParent ? '按你最近的观察选，不用挑状态最好的那次' : '家长只读题，让孩子自己指'}
+      <span style="display:block;margin-top:6px;color:var(--ink3)">点右上角小喇叭可以听题 · 题目会按上一题的选择变</span>
+    </p>
+    <div class="as-nav">
+      <button class="as-back" type="button" id="asBack" ${asOrder.length <= 1 ? 'disabled' : ''}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        上一题
+      </button>
+      <span>第 ${asOrder.length} 题</span>
+    </div>
+  `;
+  $$('#asBody .as-opt').forEach(b => { b.onclick = () => pickAssess(+b.dataset.i); });
+  $('#asSpeak').onclick = speakCurrent;
+  $('#asBack').onclick = assessBack;
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) return toast('当前浏览器不支持朗读');
+  try { speechSynthesis.cancel(); } catch (e) { }
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  u.rate = 0.92;
+  speechSynthesis.speak(u);
+}
+
+function speakCurrent() {
+  const btn = $('#asSpeak');
+  if (btn) {
+    btn.classList.add('on');
+    setTimeout(() => btn.classList.remove('on'), 1200);
+  }
+  if (asPhase === 'follow' && asFollow && asFollow[asFuIdx]) {
+    speak(asFollow[asFuIdx].q);
+    return;
+  }
+  const q = ASK[asQid];
+  if (!q) return;
+  speak(`${q.t}。${q.opts.map((o, i) => `第 ${i + 1} 个，${o.l}`).join('。')}`);
+}
+
+function assessBack() {
+  try { speechSynthesis.cancel(); } catch (e) { }
+  if (!asOrder.length) { asPhase = 'intro'; renderAssess(); return; }
+  const back = asOrder.pop();
+  delete asAnswers[back];
+  if (!asOrder.length) { asQid = null; asPhase = 'intro'; renderAssess(); return; }
+  asQid = asOrder[asOrder.length - 1];
+  asPhase = ASK[asQid].who;
+  renderAssess();
+}
+
+function pickAssess(j) {
+  if (asLock) return;
+  asLock = true;
+  const q = ASK[asQid];
+  const o = q.opts[j];
+  asAnswers[asQid] = { l: o.l, label: o.l, v: o.v, s: o.s, tag: o.tag, who: q.who };
+  $$('#asBody .as-opt').forEach(b => b.classList.toggle('on', +b.dataset.i === j));
+
+  setTimeout(() => {
+    const nq = nextQuestion(asAnswers);
+    const parentDone = Object.keys(asAnswers).filter(k => ASK[k].who === 'parent').length >= 6;
+    const childStarted = Object.keys(asAnswers).some(k => ASK[k].who === 'child');
+    if (!nq) { finishAssess(); return; }
+    const at = asOrder.indexOf(asQid);
+    if (at >= 0) asOrder = asOrder.slice(0, at + 1);
+    if (asOrder[asOrder.length - 1] !== nq) asOrder.push(nq);
+    asQid = nq;
+    if (parentDone && !childStarted) {
+      if (!asFollow) { startFollow(); return; }
+      asPhase = 'handoff'; renderAssess(); return;
+    }
+    asPhase = ASK[nq].who;
+    renderAssess();
+  }, 220);
+}
+
+function buildFollowups() {
+  const pr = state.profile;
+  const ob = obsOf({ answers: asAnswers }) || {};
+  const want = pr.wants[0];
+  const weak = (ob.support || 2) <= 1.5 ? '需要人陪'
+    : (ob.focusScore ?? 2) <= 1 ? '专注时间短'
+      : (ob.autonomy ?? 2) <= 1.2 ? '自己不太会开始' : '还看不出明显短板';
+  return [
+    {
+      q: '孩子是男孩还是女孩？平时主要是谁带他多一些，每天大概陪多久？',
+      why: `建档里是 ${pr.age} 岁 ${pr.grade}、${pr.city}。性别和主要带养人会直接影响我们对线上还是到店、以及家里能不能执行到位的判断。`,
+      ph: '例如：女孩，妈妈带得多，工作日晚上 1 小时，周末全天',
+      answer: ''
+    },
+    {
+      q: `最近一次让你觉得「${want}这个问题必须解决」，当时是什么场景？`,
+      why: `你选的第一个目标是「${want}」，测评里显示「${weak}」。用一个具体场景，比选项更能判断是偶发还是已经影响日常。`,
+      ph: '例如：上周写作业拖到十点，我一说他就哭',
+      answer: ''
+    },
+    {
+      q: '这学期结束，你希望看到哪一个具体变化？用你自己的话说一句就行。',
+      why: `你填的是一周能匀出 ${ob.cap || 2} 个时段。目标越具体，越能判断这门课到底值不值。`,
+      ph: '例如：能自己坐下来写完作业，不用我催三次',
+      answer: ''
+    }
+  ];
+}
+
+function startFollow() {
+  if (!asFollow) asFollow = buildFollowups();
+  asPhase = 'follow';
+  asFuIdx = 0;
+  asFuPick = null;
+  renderAssess();
+}
+
+function finishAssess() {
+  if (asFollow) {
+    state.profile.follow = asFollow.map(f => ({ q: f.q, why: f.why, a: (f.answer || '').trim(), img: !!f.img }));
+  }
+  state.assessment = { answers: asAnswers, at: Date.now() };
+  state.report = buildReport(state.profile);
+  save();
+  go('diagnosing', { push: false });
+}
+
+/* ---------- 诊断动效 ---------- */
+let diagTimer = null;
+let diagTick = null;
+let diagMine = null;
+let recTimer = null;
+let recShown = false;
+function runDiagnose() {
+  clearTimeout(diagTimer);
+  clearInterval(diagTick);
+  clearInterval(diagMine);
+
+  const fx = $('#fx');
+  const startRound = () => {
+    fx.classList.remove('run');
+    void fx.offsetWidth;
+    fx.classList.add('run');
+  };
+  startRound();
+  // 单轮 1.5 秒，不设固定循环，持续播放直到生成完成
+  diagMine = setInterval(startRound, 1500);
+
+  const stages = [
+    [0, '正在读取孩子的档案', '把年龄、年级、你自己的观察，和 12 万份同龄甄选记录放在一起看。'],
+    [26, '正在比对同龄路径', state.profile ? `同样 ${state.profile.age} 岁，选书法和选编程的雷区完全不同。` : '同样年龄，选书法和选编程的雷区完全不同。'],
+    [58, '正在标记这个阶段的雷区', '先找出「现在报了也没用」的课，再谈匹配。'],
+    [86, '正在生成判断依据', '每条结论都会对应到测评里的某一次作答。']
+  ];
+  let p = 0;
+  $('#diagBar').style.width = '0%';
+  diagTick = setInterval(() => {
+    p = Math.min(100, p + 4);
+    $('#diagBar').style.width = p + '%';
+    $('#diagCount').textContent = `${Math.round(128463 * p / 100).toLocaleString('zh-CN')} / 128,463 份甄选记录`;
+    const cur = stages.filter(s => p >= s[0]).pop();
+    if (cur) {
+      $('#diagLine').textContent = cur[1];
+      $('#diagSub').textContent = cur[2];
+    }
+  }, 90);
+
+  diagTimer = setTimeout(() => {
+    clearInterval(diagTick);
+    clearInterval(diagMine);
+    go('report', { push: false });
+  }, 2500);
+}
+
+/* ---------- 建档实时引导 ---------- */
+function updateGuide() {
+  const age = $('#age').value, city = $('#city').value.trim(), grade = $('#grade').value;
+  const wants = $$('#wants .chip.on').length;
+  const n = [age, city, grade, wants].filter(Boolean).length;
+  const missing = [!age && '年龄', !city && '城市', !grade && '年级', !wants && '一个期望'].filter(Boolean);
+  $('#fgBar').style.width = (n / 4 * 100) + '%';
+  $('#fgText').innerHTML = n === 4
+    ? '<b>信息齐了</b> · 接下来 13 道题按真实情况答，判断会更准'
+    : `<b>输入越详细，避雷越准确</b> · 已填 ${n}/4${missing.length ? '，还差' + missing.join('、') : ''}`;
+}
+
+/* ---------- 事件绑定 ---------- */
+function bindEvents() {
+  $('#startBtn').onclick = () => go('login');
+  $('#backBtn').onclick = back;
+
+  $$('.tab').forEach(t => {
+    t.onclick = () => {
+      const id = t.dataset.tab;
+      if (id === 'report' && !state.report) {
+        toast('先答完 4 个问题，才有报告');
+        return go(state.user ? 'form' : 'login');
+      }
+      historyStack = [];
+      go(id, { push: false });
+    };
+  });
+
+  /* 登录 */
+  const phone = $('#phone');
+  phone.addEventListener('input', () => {
+    phone.value = phone.value.replace(/\D/g, '').slice(0, 11);
+    syncLogin();
+  });
+  $('#code').addEventListener('input', () => {
+    $('#code').value = $('#code').value.replace(/\D/g, '').slice(0, 4);
+    syncLogin();
+  });
+  function syncLogin() {
+    const btn = $('#loginBtn');
+    if (btn) btn.disabled = phone.value.length !== 11;
+  }
+  syncLogin();
+  $('#sendCode').onclick = () => {
+    if (phone.value.length !== 11) {
+      const e = $('#loginErr');
+      e.textContent = '先填 11 位手机号';
+      e.classList.add('show');
+      return;
+    }
+    $('#code').value = '1234';
+    $('#code').classList.remove('filled');
+    void $('#code').offsetWidth;
+    $('#code').classList.add('filled');
+    syncLogin();
+    toast('验证码已发送（演示：1234，已自动填入）');
+    const btn = $('#sendCode');
+    btn.disabled = true;
+    let s = 30;
+    btn.textContent = s + 's 后重发';
+    const t = setInterval(() => {
+      s--;
+      if (s <= 0) {
+        clearInterval(t);
+        btn.disabled = false;
+        btn.textContent = '发送验证码';
+      } else btn.textContent = s + 's 后重发';
+    }, 1000);
+  };
+  $('#loginForm').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const err = $('#loginErr');
+    if (phone.value.length !== 11) {
+      err.textContent = '手机号需要 11 位';
+      err.classList.add('show');
+      return;
+    }
+    if (!$('#code').value) {
+      err.textContent = '还没填验证码。点「发送验证码」会自动填入 1234';
+      err.classList.add('show');
+      return;
+    }
+    if ($('#code').value !== '1234') {
+      err.textContent = '验证码不对，演示环境请输入 1234';
+      err.classList.add('show');
+      return;
+    }
+    err.classList.remove('show');
+    const sameUser = state.phone === phone.value;
+    state.user = { id: 'u_' + phone.value.slice(-6), phone: phone.value };
+    state.phone = phone.value;
+    if (!sameUser) { state.profile = null; state.report = null; state.assessment = null; }
+    save();
+    go('form');
+  });
+
+  /* 建档 */
+  $$('#wants .chip').forEach(c => {
+    c.onclick = () => {
+      const on = c.classList.contains('on');
+      $$('#wants .chip').forEach(x => x.classList.remove('on'));
+      if (!on) c.classList.add('on');
+      updateGuide();
+    };
+  });
+  ['#age', '#city', '#grade'].forEach(sel => {
+    const el = $(sel);
+    el.addEventListener('input', updateGuide);
+    el.addEventListener('change', updateGuide);
+  });
+  updateGuide();
+  $('#profileForm').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const age = $('#age').value;
+    const city = $('#city').value.trim();
+    const grade = $('#grade').value;
+    const wants = $$('#wants .chip.on').map(c => c.dataset.w);
+    const err = $('#formErr');
+
+    if (!age || !city || !grade || !wants.length) {
+      err.textContent = !age ? '先选一下孩子年龄'
+        : !city ? '城市还没填'
+          : !grade ? '选一下年级'
+            : '至少选 1 个期望';
+      err.classList.add('show');
+      return;
+    }
+    err.classList.remove('show');
+    state.profile = { age: +age, city, grade, wants };
+    state.assessment = null;
+    state.report = null;
+    save();
+    go('assess');
+  });
+
+  /* 语音 */
+  $('#voiceBtn').onclick = () => startVoice('form');
+  $('#cityMic').onclick = () => startVoice('city');
+  $('#ticketMic').onclick = () => startVoice('ticket');
+
+  /* 报告 → 推荐 */
+  $('#toRecBtn').onclick = () => go('recommend');
+  $('#refineBtn').onclick = openRefine;
+  $('#switchBtn').onclick = openSwitch;
+  $('#reportSwitch').onclick = openSwitch;
+
+  /* 成功页 */
+  $('#toGrowthFromSucc').onclick = () => go('growth');
+  $('#backRecBtn').onclick = () => go('recommend');
+
+  /* 成长档案 */
+  $('#revisitBtn').onclick = () => {
+    if (state.profile) fillProfile(state.profile);
+    toast('复诊：改一下变化的部分就行');
+    go('form');
+  };
+
+  /* 售后 */
+  $('#orderPick').onclick = () => {
+    if (!state.orders.length) return toast('先报名一门课，才能发起售后');
+    sheetOpen('选择订单', '工单会关联到这一单', state.orders.map(o => `
+      <div class="order-pick" style="margin-bottom:8px">
+        <div class="op-main">
+          <b>${esc(o.name)}</b>
+          <small>${o.id} · ¥${money(o.amount)} · ${o.status}</small>
+        </div>
+      </div>`).join('') + `<p class="tiny">演示版直接使用最新订单。</p>`);
+  };
+  $$('#ticketTypes .chip').forEach(c => {
+    c.onclick = () => {
+      $$('#ticketTypes .chip').forEach(x => x.classList.toggle('on', x === c));
+    };
+  });
+  $('#addFile').onclick = () => {
+    const names = ['聊天记录截图.jpg', '报名凭证.png', '课程表.pdf', '孩子上课照片.jpg'];
+    const n = names[state.files.length % names.length];
+    state.files.push(n);
+    renderFiles();
+    toast('已添加附件（演示）');
+  };
+  $('#submitTicket').onclick = () => {
+    const desc = $('#ticketDesc').value.trim();
+    const err = $('#asErr');
+    if (desc.length < 4) {
+      err.textContent = '简单描述一下发生了什么，至少 4 个字';
+      err.classList.add('show');
+      return;
+    }
+    err.classList.remove('show');
+    const type = ($('#ticketTypes .chip.on') || {}).dataset ? $('#ticketTypes .chip.on').dataset.t : '咨询';
+    const o = state.orders[0];
+    const t = {
+      id: 'T' + String(Date.now()).slice(-6),
+      type,
+      desc,
+      orderId: o ? o.id : '',
+      status: '待处理',
+      files: state.files.slice(),
+      time: fmtTime()
+    };
+    state.tickets.unshift(t);
+    state.files = [];
+    $('#ticketDesc').value = '';
+    save();
+    renderAftersale();
+    toast('工单已提交，平台会在 2 小时内响应');
+  };
+}
+
+function fillProfile(pr) {
+  $('#age').value = String(pr.age);
+  $('#city').value = pr.city;
+  $('#grade').value = pr.grade;
+  $$('#wants .chip').forEach(c => c.classList.toggle('on', pr.wants.includes(c.dataset.w)));
+}
+
+/* ---------- 启动 ---------- */
+load();
+bindEvents();
+if (state.profile) fillProfile(state.profile);
+if (state.user) $('#phone').value = state.phone;
+go('landing');
+
+</script>
+</body>
+</html>

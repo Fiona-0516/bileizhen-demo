@@ -538,8 +538,13 @@
     background:#F3FAF6;color:var(--jade);font-size:11.5px;font-weight:500;
   }
   .fu-mic.on{background:var(--jade);border-color:var(--jade);color:#fff;}
+  label.fu-mic{cursor:pointer;}
   .fu-tools span{font-size:10.5px;color:var(--ink3);line-height:1.5;}
   .fu-skip{color:var(--ink3);font-size:11px;text-decoration:underline;text-underline-offset:3px;}
+  .fu-preview{margin-top:10px;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff;}
+  .fu-preview img{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:0 0 auto;}
+  .fu-pv-meta{display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--ink3);line-height:1.5;}
+  .fu-pv-meta button{color:var(--clay);font-size:10.5px;text-decoration:underline;text-underline-offset:3px;text-align:left;}
   .fu-next{margin-top:16px;}
   .fu-row{padding:11px 0;border-bottom:1px solid var(--line2);}
   .fu-row:last-child{border-bottom:0;}
@@ -1271,7 +1276,7 @@
           <h1 class="h1">先留一个手机号</h1>
           <p class="sub">只用来生成你自己的档案。不发广告，不要孩子姓名，也不要身份证。</p>
           <div class="login-seq">避雷星第 <b id="loginSeq">8,241</b> 位家园入住</div>
-          <div class="ver">演示版 v4.8 · 简答追问 · 火山识别</div>
+          <div class="ver">演示版 v4.9 · 简答 + 拍照识别 · 麦克风免重复授权</div>
         </div>
 
         <form id="loginForm" novalidate>
@@ -2607,6 +2612,10 @@ function go(id, opt = {}) {
   try { speechSynthesis.cancel(); } catch (e) { }
   if (opt.push !== false && cur && cur !== id) historyStack.push(cur);
   cur = id;
+  if (id !== 'assess' && micStream) {
+    try { micStream.getAudioTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ }
+    micStream = null;
+  }
   $$('.screen').forEach(s => s.classList.toggle('on', s.id === 's-' + id));
   const meta = META[id] || {};
 
@@ -2709,7 +2718,8 @@ $('#mask').onclick = sheetClose;
 $('#sheetClose').onclick = sheetClose;
 
 /* ---------- 语音输入 ---------- */
-const voice = { active: false, kind: null, rec: null, t0: 0, tick: null, text: '', sim: null };
+let micStream = null;
+const voice = { active: false, kind: null, rec: null, t0: 0, tick: null, text: '', sim: null, recType: 'audio/webm' };
 const SAMPLES = [
   '孩子六岁，在广州上一年级，想学游泳和逻辑思维',
   '孩子七岁，在深圳读二年级，想补一下数学，也想试试编程',
@@ -2876,12 +2886,16 @@ async function startCloud(kind) {
   }
   let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    if (!micStream || micStream.getAudioTracks().every(t => t.readyState !== 'live')) {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    }
+    stream = micStream;
   } catch (e) {
     toast('麦克风被拒绝，请在浏览器里允许后重试');
     return;
   }
   const mr = new MediaRecorder(stream);
+  voice.recType = mr.mimeType || 'audio/webm';
   voice.active = true;
   voice.mode = 'cloud';
   voice.mr = mr;
@@ -2897,12 +2911,12 @@ async function startCloud(kind) {
     voice.active = false;
     voice.mode = 'sr';
     voice.mr = null;
-    stream.getTracks().forEach(t => t.stop());
+    /* 麦克风保持开启，避免每次录音都弹授权 */
     voiceUI(k, false, 0);
     if (!chunks.length) return toast('没录到声音，再点一次试试');
     toast('正在识别…');
     try {
-      const wav = await blobToWav(new Blob(chunks, { type: 'audio/webm' }));
+      const wav = await blobToWav(new Blob(chunks, { type: voice.recType || 'audio/webm' }));
       const r = await fetch(ASR.url, { method: 'POST', headers: { 'content-type': 'audio/wav' }, body: wav });
       const j = await r.json();
       const text = fixASR(String(j.text || '').trim());
@@ -3138,7 +3152,7 @@ function renderReport() {
   $('#repFollow').innerHTML = follow.map((f, i) => `
     <div class="fu-row">
       <div class="fu-q">简答 ${i + 1}｜${esc(f.q)}</div>
-      <div class="fu-a">${esc(f.a || '未填写')}</div>
+      <div class="fu-a">${esc(f.a || '未填写')}${f.img ? '<small>附 1 张图片</small>' : ''}</div>
     </div>`).join('');
   $('#repStage').innerHTML = `
     <p><b>${esc(r.stage.label)}：</b>${esc(r.stage.traits)}</p>
@@ -3711,11 +3725,11 @@ function renderAssess() {
       <h1 class="as-q" style="font-size:26px;margin-bottom:10px">先测，再给建议</h1>
       <p class="sub">不用固定问卷。每答一题，下一题会按你刚选的内容变——${pr.age} 岁孩子在意的东西，和 10 岁不一样。</p>
       <div class="as-intro-kv">
-        <div><b class="p">家长填写</b><span>6 题：一对一需求、活跃度、自主性、遇挫反应、可安排时段、屏幕或入学节奏</span></div>
-        <div><b class="c">孩子回答</b><span>4 题：最喜欢的课、遇到难题的反应、最想带走什么、周末想做什么；选到书法或思维会追加专项题</span></div>
+        <div><b class="p">家长填写 · 9 题</b><span>6 道选择：一对一需求、活跃度、自主性、遇挫反应、可安排时段、屏幕或入学节奏；3 道简答：可打字、语音，也可以拍照上传试卷让我们看</span></div>
+        <div><b class="c">孩子回答 · 4 题</b><span>最喜欢的课、遇到难题的反应、最想带走什么、周末想做什么；选到书法或思维会追加专项题</span></div>
       </div>
       <button class="btn primary" id="asStart">开始测评</button>
-      <p class="as-foot">孩子部分请把手机交给孩子，你只负责读题。共 10 题左右。</p>
+      <p class="as-foot">家长一次做完 9 题，再把手机交给孩子做剩下的 4 题，不用来回交接。</p>
     `;
     $('#asStart').onclick = () => {
       asAnswers = {};
@@ -3738,12 +3752,13 @@ function renderAssess() {
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
         </div>
         <h2>家长部分完成</h2>
-        <p>接下来 4 道题，请把手机交给孩子。<br>你只读题，孩子怎么选都不算错。</p>
+        <p>6 道选择 + 3 道简答都记下了，后面不用再拿手机。<br>剩下 4 题交给孩子，你只读题，怎么选都不算错。</p>
         <button class="btn primary" id="asGoChild">把手机交给孩子 →</button>
         <div style="margin-top:14px"><button class="as-back" type="button" id="asBackHandoff">← 返回上一题修改</button></div>
       </div>`;
     $('#asGoChild').onclick = () => { asPhase = 'child'; renderAssess(); };
     $('#asBackHandoff').onclick = () => {
+      if (asFollow) { asFuIdx = Math.max(0, asFollow.length - 1); asPhase = 'follow'; renderAssess(); return; }
       const lastParent = asOrder.slice().reverse().find(k => ASK[k] && ASK[k].who === 'parent');
       asQid = lastParent || 'oneonone';
       asPhase = 'parent';
@@ -3770,7 +3785,19 @@ function renderAssess() {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
           语音回答
         </button>
-        <span id="fuHint">可以直接打字，也可以点左边说</span>
+        <label class="fu-mic" for="fuFile">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/><circle cx="12" cy="12.5" r="3.2"/></svg>
+          拍照 / 上传
+        </label>
+        <input id="fuFile" type="file" accept="image/*" hidden>
+        <span id="fuHint">可以直接打字，也可以语音，或拍试卷让我们看</span>
+      </div>
+      <div class="fu-preview" id="fuPreview" hidden>
+        <img id="fuImg" alt="上传的图片">
+        <div class="fu-pv-meta">
+          <span id="fuOcrHint">识别中…</span>
+          <button type="button" id="fuRemove">移除</button>
+        </div>
       </div>
       <button class="btn primary fu-next" id="fuNext" ${saved.trim().length >= 2 ? '' : 'disabled'}>${asFuIdx >= 2 ? '生成避雷报告' : '下一题'} →</button>
       <div class="as-nav">
@@ -3786,24 +3813,49 @@ function renderAssess() {
     ta.oninput = () => { next.disabled = ta.value.trim().length < 2; };
     $('#asSpeak').onclick = speakCurrent;
     $('#fuMic').onclick = () => startVoice('follow');
+    $('#fuFile').onchange = async ev => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      $('#fuPreview').hidden = false;
+      $('#fuImg').src = URL.createObjectURL(file);
+      $('#fuOcrHint').textContent = '识别中…（本地 OCR，约 2 秒）';
+      f.img = true;
+      try {
+        const r = await fetch(ASR.url.replace(/\/api\/asr\/?$/, '/api/ocr'), { method: 'POST', headers: { 'content-type': file.type || 'application/octet-stream' }, body: file });
+        const j = await r.json();
+        if (j.text && j.text.trim()) {
+          const t = j.text.trim().replace(/\n+/g, '；').slice(0, 180);
+          f.ocr = t;
+          ta.value = (ta.value ? ta.value + '\n' : '') + '（图片内容）' + t;
+          ta.dispatchEvent(new Event('input'));
+          $('#fuOcrHint').textContent = '已识别，文字已加到上面，可删改';
+        } else {
+          $('#fuOcrHint').textContent = '图片已附上，但没识别出文字';
+        }
+      } catch (e) {
+        $('#fuOcrHint').textContent = '图片已附上（本地 OCR 未启动）';
+      }
+    };
+    $('#fuRemove').onclick = () => {
+      $('#fuPreview').hidden = true;
+      $('#fuImg').removeAttribute('src');
+      f.img = false; f.ocr = '';
+      $('#fuFile').value = '';
+    };
     $('#asBack').onclick = () => {
       if (asFuIdx === 0) return;
       f.answer = ta.value.trim();
       asFuIdx--;
       renderAssess();
     };
-    $('#fuSkip').onclick = () => {
+    const done = () => {
       f.answer = ta.value.trim();
-      if (asFuIdx >= 2) return finishAssess();
+      if (asFuIdx >= 2) { asPhase = 'handoff'; renderAssess(); return; }
       asFuIdx++;
       renderAssess();
     };
-    next.onclick = () => {
-      f.answer = ta.value.trim();
-      if (asFuIdx >= 2) return finishAssess();
-      asFuIdx++;
-      renderAssess();
-    };
+    $('#fuSkip').onclick = done;
+    next.onclick = done;
     return;
   }
 
@@ -3887,12 +3939,15 @@ function pickAssess(j) {
     const nq = nextQuestion(asAnswers);
     const parentDone = Object.keys(asAnswers).filter(k => ASK[k].who === 'parent').length >= 6;
     const childStarted = Object.keys(asAnswers).some(k => ASK[k].who === 'child');
-    if (!nq) { startFollow(); return; }
+    if (!nq) { finishAssess(); return; }
     const at = asOrder.indexOf(asQid);
     if (at >= 0) asOrder = asOrder.slice(0, at + 1);
     if (asOrder[asOrder.length - 1] !== nq) asOrder.push(nq);
     asQid = nq;
-    if (parentDone && !childStarted) { asPhase = 'handoff'; renderAssess(); return; }
+    if (parentDone && !childStarted) {
+      if (!asFollow) { startFollow(); return; }
+      asPhase = 'handoff'; renderAssess(); return;
+    }
     asPhase = ASK[nq].who;
     renderAssess();
   }, 220);
@@ -3937,7 +3992,7 @@ function startFollow() {
 
 function finishAssess() {
   if (asFollow) {
-    state.profile.follow = asFollow.map(f => ({ q: f.q, why: f.why, a: (f.answer || '').trim() }));
+    state.profile.follow = asFollow.map(f => ({ q: f.q, why: f.why, a: (f.answer || '').trim(), img: !!f.img }));
   }
   state.assessment = { answers: asAnswers, at: Date.now() };
   state.report = buildReport(state.profile);
@@ -4000,7 +4055,7 @@ function updateGuide() {
   const missing = [!age && '年龄', !city && '城市', !grade && '年级', !wants && '一个期望'].filter(Boolean);
   $('#fgBar').style.width = (n / 4 * 100) + '%';
   $('#fgText').innerHTML = n === 4
-    ? '<b>信息齐了</b> · 接下来 10 道题按真实情况答，判断会更准'
+    ? '<b>信息齐了</b> · 接下来 13 道题按真实情况答，判断会更准'
     : `<b>输入越详细，避雷越准确</b> · 已填 ${n}/4${missing.length ? '，还差' + missing.join('、') : ''}`;
 }
 

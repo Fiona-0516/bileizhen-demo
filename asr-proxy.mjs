@@ -14,6 +14,23 @@
 import { createServer } from 'node:http';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { randomUUID } from 'node:crypto';
+import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const OCR_BIN = '/tmp/blz-ocr-bin';
+const OCR_SRC = path.join(__dirname, 'ocr.swift');
+let ocrReady = null;
+function prepareOcr() {
+  if (ocrReady) return ocrReady;
+  ocrReady = new Promise(resolve => {
+    if (existsSync(OCR_BIN)) return resolve(OCR_BIN);
+    execFile('swiftc', ['-O', OCR_SRC, '-o', OCR_BIN], { timeout: 90000 }, err => resolve(err ? null : OCR_BIN));
+  });
+  return ocrReady;
+}
 
 const KEY = process.env.VOLC_SPEECH_API_KEY || process.env.VOLC_ARK_KEY || '';
 const ASR_URL = process.env.VOLC_ASR_URL || 'wss://openspeech.bytedance.com/api/v3/plan/sauc/bigmodel_async';
@@ -121,6 +138,30 @@ createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
   if (req.url === '/health') return json(res, 200, { ok: true, configured: Boolean(KEY), resource: RESOURCE });
 
+  if (req.url === '/api/ocr' && req.method === 'POST') {
+    const chunks = [];
+    for await (const c of req) chunks.push(c);
+    const buf = Buffer.concat(chunks);
+    if (buf.length < 100) return json(res, 400, { error: '图片为空' });
+    const file = path.join('/tmp', `blz-ocr-${randomUUID()}.jpg`);
+    try {
+      writeFileSync(file, buf);
+      const bin = await prepareOcr();
+      if (!bin) return json(res, 200, { text: '', error: '本机缺少 swiftc，无法编译 OCR' });
+      const text = await new Promise((resolve, reject) => {
+        execFile(bin, [file], { timeout: 30000 }, (err, stdout) => {
+          if (err) return reject(err);
+          try { resolve(JSON.parse(stdout.trim()).text || ''); } catch (e) { resolve(''); }
+        });
+      });
+      return json(res, 200, { text });
+    } catch (err) {
+      return json(res, 200, { text: '', error: 'OCR 失败：' + (err.message || '未知错误') });
+    } finally {
+      try { unlinkSync(file); } catch (e) { }
+    }
+  }
+
   if (req.url !== '/api/asr' || req.method !== 'POST') return json(res, 404, { error: 'not found' });
   if (!KEY) return json(res, 500, { error: '缺少 VOLC_SPEECH_API_KEY 环境变量' });
 
@@ -138,4 +179,5 @@ createServer(async (req, res) => {
 }).listen(PORT, '127.0.0.1', () => {
   console.log(`ASR proxy: http://127.0.0.1:${PORT}/api/asr`);
   console.log(`凭据：${KEY ? '已配置' : '未配置（请设置 VOLC_SPEECH_API_KEY）'} · ${RESOURCE}`);
+  prepareOcr().then(bin => console.log(`OCR：${bin ? '就绪（macOS Vision）' : '不可用'}`));
 });
