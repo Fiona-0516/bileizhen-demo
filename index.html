@@ -1207,6 +1207,266 @@
   }
   .tab-btn{color:var(--ink3);}
   .tab-btn.on{color:var(--jade);}
+  /* ---------- v5.0 贴纸手账风（参照杨子建版视觉） ---------- */
+  [hidden]{display:none !important;}
+  :root{
+    --paper:#FBF4E4;
+    --card:#FFFDF8;
+    --ink:#2A3A31;
+    --ink2:#5F6F64;
+    --ink3:#93A096;
+    --line:#EADCC0;
+    --line2:#F4EBD8;
+    --deep:#2A6653;
+    --jade:#2E7D63;
+    --jade-soft:#E1F2E8;
+    --clay:#D2684A;
+    --clay-soft:#FCE7DD;
+    --amber:#DFA32C;
+    --amber-soft:#FFF3D2;
+    --sky:#7FBEE3;
+    --sky-soft:#E6F3FB;
+    --peach:#F1AE93;
+    --peach-soft:#FDE8DE;
+    --butter:#F7D264;
+    --butter-soft:#FFF4CB;
+    --serif:"Yuanti SC","Yuanti TC","PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,sans-serif;
+    --sans:"Yuanti SC","Yuanti TC","PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,sans-serif;
+    --shadow:0 10px 22px -16px rgba(96,76,36,.42);
+    --shadow-lg:0 18px 40px -24px rgba(96,76,36,.48);
+  }
+  body{
+    background:
+      radial-gradient(720px 420px at 50% -8%, #FFF7E2 0%, rgba(255,247,226,0) 62%),
+      radial-gradient(#EDE0C4 1.1px, transparent 1.1px) 0 0/24px 24px,
+      #F1EADA;
+  }
+  .app{
+    background-color:var(--paper);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='230' height='230'%3E%3Cg fill='%23F2DFB2'%3E%3Cpath d='M36 22l3 6.2 6.9.9-5 4.8 1.2 6.8-6.1-3.3-6.1 3.3 1.2-6.8-5-4.8 6.9-.9z'/%3E%3C/g%3E%3Cg fill='%23F7E9C8'%3E%3Ccircle cx='176' cy='64' r='4.2'/%3E%3Ccircle cx='98' cy='162' r='3.2'/%3E%3C/g%3E%3Cg fill='%23F0C7B3'%3E%3Cpath d='M156 176l2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(120% 30% at 50% 0%, #FFF9EC 0%, rgba(255,249,236,0) 60%);
+    background-repeat:no-repeat,no-repeat;
+    background-size:230px 230px,100% 340px;
+    box-shadow:0 30px 80px -40px rgba(96,76,36,.45);
+  }
+  .stage{background:radial-gradient(#EDE0C4 1.1px, transparent 1.1px) 0 0/26px 26px, #F1EADA;}
+
+  /* 顶栏 */
+  .appbar{background:rgba(251,244,228,.86);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);}
+  .appbar.solid{border-bottom-color:#EFE3C9;}
+  .bar-title,.bar-brand{font-family:var(--sans);font-weight:800;letter-spacing:.4px;}
+  .iconbtn{border-radius:14px;}
+  .iconbtn:active{background:#F3E9D2;}
+
+  /* 标题 */
+  .landing-h1,.rec-title,.as-q,.as-handoff h2,.block-h,.diag-title,.login-h1,.rep-title,.h1,.h2{
+    font-family:var(--sans);font-weight:800;letter-spacing:0;
+  }
+  .landing-h1{font-size:32px;line-height:1.42;}
+  .landing-h1 em{
+    color:#2A6653;
+    background-image:linear-gradient(transparent 62%, #FFE49B 62%);
+    background-repeat:no-repeat;padding-bottom:2px;white-space:normal;
+  }
+  .landing-sub{font-size:13.5px;line-height:1.9;color:var(--ink2);}
+  .kicker,.landing-kicker{letter-spacing:2.2px;color:#A2947A;font-size:10px;font-weight:700;}
+  .as-q{font-size:24px;line-height:1.5;}
+  .rep-title{font-size:26px;line-height:1.36;}
+
+  /* 按钮 */
+  .btn{border-radius:18px;height:54px;font-weight:800;letter-spacing:.6px;}
+  .btn.primary{
+    background:linear-gradient(180deg,#3E8A72 0%,#2A6653 100%);
+    color:#FFFDF6;border:2px solid #245A49;
+    box-shadow:0 5px 0 -1px rgba(36,90,73,.26),0 16px 26px -18px rgba(36,90,73,.6);
+  }
+  .btn.primary:disabled{background:#E6DECB;border-color:#E6DECB;color:#A79F8C;box-shadow:none;}
+  .btn.primary:active{filter:brightness(.98);transform:translateY(1px);}
+  .btn.ghost{background:#FFFDF8;border:1.5px dashed #DCCBA8;border-radius:16px;color:#5F6F64;height:50px;}
+  .btn.link{color:#2E7D63;text-decoration-color:#BFD9CC;}
+  .chip{
+    padding:10px 14px;border-radius:14px;background:#FFFDF8;
+    border:1.5px solid #EFE3C9;font-size:13.5px;font-weight:600;color:#5F6F64;
+  }
+  .chip.on{
+    background:linear-gradient(180deg,#EDF9F1,#DFF1E7);
+    border-color:#5FA88C;color:#245A47;
+    box-shadow:0 4px 0 -3px rgba(95,168,140,.45);
+  }
+
+  /* 卡片与表单 */
+  .card,.block,.dim,.p-card,.as-intro-kv div,.ticket{
+    background:var(--card);border:1.5px solid var(--line);border-radius:20px;
+    box-shadow:var(--shadow);
+  }
+  .control{
+    height:52px;border-radius:14px;background:#FFFDF8;
+    border:1.5px solid #E7D8B9;font-size:15px;
+  }
+  .control:focus{border-color:#5FA88C;box-shadow:0 0 0 4px rgba(95,168,140,.14);}
+  .mini-mic{border-radius:12px;color:#2E7D63;}
+  .mini-mic:active{background:#E7F5EC;}
+
+  /* 报告的分节标题：贴纸木牌 */
+  .block-h{
+    position:relative;display:flex;align-items:center;gap:8px;
+    font-size:14.5px;font-weight:800;color:#2A4A3C;
+    background:linear-gradient(180deg,#F2FAF3,#E4F3E9);
+    border:1.5px dashed #BEDCC9;border-radius:14px;
+    padding:9px 12px;margin:0 0 12px;
+  }
+  .block-h::before{
+    content:"";position:absolute;left:-3px;top:-9px;width:26px;height:11px;
+    background:rgba(247,210,100,.7);border-radius:2px;transform:rotate(-9deg);
+  }
+  .block-h .n{color:#7E8F82;font-size:10px;font-weight:600;}
+  .block-h .dot{width:6px;height:6px;}
+  .block:nth-of-type(3n+2) .block-h{background:linear-gradient(180deg,#F4FAFE,#E4F2FB);border-color:#C4E0F2;color:#2C5468;}
+  .block:nth-of-type(3n) .block-h{background:linear-gradient(180deg,#FFFAE9,#FFF2CE);border-color:#EAD8A4;color:#7A5A16;}
+
+  /* 选项：贴纸卡片 */
+  .as-opts{gap:10px;}
+  .as-opt{
+    background:#FFFDF8;border:2px solid #F0E4C9;border-radius:18px;
+    padding:15px 16px;font-size:14.5px;
+    box-shadow:0 5px 0 -3px rgba(214,196,158,.5);
+  }
+  .as-opt .k{background:#FBF1DC;color:#A98C46;border-radius:9px;font-weight:800;}
+  .as-opt.on{background:#E7F5EC;border-color:#5FA88C;box-shadow:0 5px 0 -3px rgba(95,168,140,.45);}
+  .as-opt.on .k{background:#2E7D63;color:#fff;}
+  .speak{width:38px;height:38px;flex:0 0 38px;border:1.5px solid #CFE6DA;background:#F1FAF5;color:#2E7D63;}
+  .as-who{border-radius:10px;font-weight:800;}
+  .as-who.parent{background:#FDE8DE;color:#B4573A;}
+  .as-who.child{background:#E1F2E8;color:#245A47;}
+  .as-why, .as-intro-kv div{box-shadow:none;}
+  .as-why{background:linear-gradient(180deg,#EDF8F1,#E1F1E8);border:1.5px dashed #BFDCCB;border-radius:16px;color:#3C5D4D;}
+
+  /* 底部操作 */
+  .as-nav{border-top:1.5px dashed #EBDDBD;}
+  .as-back{color:#2E7D63;font-weight:700;}
+
+  /* 简答输入 */
+  .fu-text{
+    background:#FFFDF8;border:2px solid #F0E4C9;border-radius:16px;
+    box-shadow:0 5px 0 -3px rgba(214,196,158,.45);
+  }
+  .fu-text:focus{border-color:#5FA88C;box-shadow:0 0 0 4px rgba(95,168,140,.12);}
+  .fu-tools span{color:#A2947A;}
+  .fu-mic{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#FFFDF8;border:1.5px solid #EADCC0;border-radius:999px;
+    padding:8px 12px;font-size:11.5px;font-weight:600;color:#4E6157;
+  }
+  .fu-mic.on{background:#2E7D63;border-color:#2E7D63;color:#fff;}
+  .fu-preview{border:1.5px dashed #DFCFA9;border-radius:14px;background:#FFFBEE;}
+  .fu-preview img{width:58px;height:58px;border-radius:10px;background:#F6EEDB;}
+  .fu-preview.noimg img{display:none;}
+  .fu-preview.noimg::before{
+    content:"图片已附上";flex:0 0 58px;width:58px;height:58px;border-radius:10px;
+    background:#F6EEDB;color:#9A8C6E;font-size:10px;line-height:1.3;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+  }
+  .fu-pv-meta{font-size:10.5px;color:#8C7F63;}
+
+  /* 交接页 */
+  .ho-ico{background:#E1F2E8;color:#2E7D63;border:2px dashed #BFDCCB;}
+
+  /* 报告 */
+  .rep-meta{color:#8C7F63;}
+  .rep-lede{font-size:13px;line-height:1.85;color:#4E6157;}
+  .dims{gap:10px;}
+  .dim{padding:12px 12px 13px;background:#FFFDF8;border-radius:16px;}
+  .dim-k{font-size:11px;font-weight:700;color:#8C7F63;}
+  .dim-v{font-weight:800;letter-spacing:-.5px;}
+  .dim-bar{background:#F4EAD5;border-radius:99px;}
+  .dim-bar i{border-radius:99px;}
+  .dim-n{font-size:10px;color:#93A096;}
+  .radar-read{font-size:12px;line-height:1.95;color:#4E6157;}
+  .stage-note{background:#FFFBEE;border:1.5px dashed #EBDDBD;border-radius:16px;}
+  .rep-stage{
+    background:#FFFBEE;border:1.5px dashed #EBDDBD;border-radius:16px;
+    padding:13px 15px;margin:0 0 18px;
+  }
+  .rep-stage p{font-size:11.5px;line-height:1.9;color:#4E6157;margin:0;}
+  .rep-stage p + p{margin-top:7px;}
+  .rep-stage b{color:#2A4A3C;font-weight:700;}
+  .evid{background:#FFFBEF;border:1.5px dashed #EBDDBD;border-radius:16px;padding:2px 12px;}
+  .evid-k{font-size:10.5px;color:#A2947A;font-weight:700;}
+  .evid-v{font-size:12px;color:#41564A;line-height:1.8;}
+  .trait-tag{border-radius:8px;font-weight:700;}
+  .fu-row{border-bottom:1px dashed #EBDDBD;}
+  .fu-q{font-size:11.5px;color:#2A4A3C;font-weight:700;}
+  .fu-a{font-size:12px;line-height:1.8;color:#4E6157;}
+  .eval{
+    background:#FFFDF8;border:1.5px solid #F0E4C9;border-radius:16px;
+    padding:12px 13px;margin-bottom:10px;box-shadow:var(--shadow);
+  }
+  .eval-tag{border-radius:99px;font-weight:700;}
+  .eval-act{background:#F9F3E3;border-radius:10px;color:#3C5D4D;}
+  .avoid-item{background:#FFFCF4;border:1.5px dashed #EFD9C6;border-radius:16px;}
+  .avoid-item .idx{color:#D2684A;}
+  .tag-g{background:#E1F2E8;color:#245A47;border-radius:99px;font-weight:600;}
+  .tag-s{background:#FFF3D2;color:#8A6416;border-radius:99px;font-weight:600;}
+  .stale-tip{background:#FFF3D2;border:1.5px dashed #E6C77A;border-radius:14px;}
+  .child-miss{background:#E9F4FB;border-color:#B7DCF1;}
+  .child-miss button{color:#2C6E8E;}
+  .rep-advice{background:#EDF8F1;border:1.5px dashed #BFDCCB;border-radius:16px;}
+
+  /* 推荐 */
+  .rec-data{
+    background:radial-gradient(58% 34% at 50% 46%, #FFF3D2 0%, rgba(255,243,210,0) 72%);
+    border:0;border-radius:0;box-shadow:none;
+  }
+  .rec-data .rd-seq{background:#FFFDF8;border:1.5px solid #EADCC0;font-weight:600;}
+  .rec-data .rd-n{font-weight:800;color:#2A4A3C;}
+  .rec-data .rd-bar{background:#EFE4CB;height:4px;border-radius:99px;}
+  .rec-data .rd-bar i{background:linear-gradient(90deg,#7FBEE3,#2E7D63);border-radius:99px;}
+  .rec-title{font-size:23px;}
+  .p-card{
+    background:linear-gradient(165deg,#FFFDF8 0%,#FDF7E7 100%);
+    border:2px solid #FFFFFF;border-radius:22px;
+    box-shadow:0 6px 0 -3px #EADFC6, var(--shadow);
+  }
+  #recHigh .p-card:nth-child(odd){background:linear-gradient(165deg,#FFFDF8 30%,#E8F4FB 100%);}
+  #recHigh .p-card:nth-child(even){background:linear-gradient(165deg,#FFFDF8 30%,#FFF2CE 100%);}
+  #recRest .p-card:nth-child(odd){background:linear-gradient(165deg,#FFFDF8 30%,#FDE8DE 100%);}
+  #recRest .p-card:nth-child(even){background:linear-gradient(165deg,#FFFDF8 30%,#EAF6EE 100%);}
+  .p-name{font-size:15.5px;font-weight:800;}
+  .p-org{font-weight:600;color:#6E7F72;}
+  .p-price b{color:#C8573A;font-weight:800;}
+  .p-tags span{background:#FFFDF8;border:1px solid #E7D8B9;border-radius:99px;font-weight:600;color:#5F6F64;}
+  .match{border-radius:99px;font-weight:800;background:#FFF3D2;color:#8A6416;}
+  .match.rank1{background:#E1F2E8;color:#1E5A46;}
+  .p-btn{border-radius:14px;background:linear-gradient(180deg,#3E8A72,#2A6653);box-shadow:0 4px 0 -2px rgba(36,90,73,.35);}
+  .p-rate{color:#7E8F82;}
+  .layer-h b{font-weight:800;color:#3C5D4D;}
+  .layer-h i{background:#FFF3D2;border-radius:99px;color:#8A6416;font-weight:700;}
+
+  /* 底部 tab / 浮层 */
+  .tabbar{background:rgba(255,253,246,.94);border-top:1.5px solid #F1E6CF;}
+  .tab,.tab-btn{color:#A2947A;font-weight:700;}
+  .tab.on,.tab-btn.on{color:#2A6653;}
+  .tab-dot{background:#D2684A;}
+  .toast{background:#2A4A3C;color:#FFFDF6;border-radius:14px;}
+  .sheet{border-radius:24px 24px 0 0;border:1.5px solid #EADCC0;background:#FFFDF8;}
+
+  /* 首页贴纸感 */
+  .flowline span{border:1.5px solid #EADCC0;background:#FFFDF8;font-weight:600;color:#5F6F64;}
+  .scan-chip{background:#FFFDF8;border:1.5px solid #EADCC0;font-weight:600;}
+  .manifesto{border-top:1.5px dashed #EADCC0;}
+  .manifesto div{border-bottom:1.5px dashed #F0E6CE;}
+  .manifesto b{font-family:var(--sans);font-weight:800;color:#3C5D4D;}
+
+  /* 甄选加载页 */
+  #s-diagnosing .diag-kicker{
+    background:#FFF3D2;border:1.5px dashed #E7C77F;border-radius:99px;
+    padding:5px 13px;color:#A9701F;letter-spacing:2px;
+  }
+  #s-diagnosing .diag-title{font-size:24px;font-weight:800;color:#2A3A31;}
+  #s-diagnosing .diag-sub{color:#8C7F63;}
+  #s-diagnosing .diag-bar{background:#EFE4CB;height:5px;border-radius:99px;}
+  #s-diagnosing .diag-bar i{background:linear-gradient(90deg,#F1AE93,#D2684A);border-radius:99px;}
 </style>
 </head>
 <body>
@@ -1276,7 +1536,7 @@
           <h1 class="h1">先留一个手机号</h1>
           <p class="sub">只用来生成你自己的档案。不发广告，不要孩子姓名，也不要身份证。</p>
           <div class="login-seq">避雷星第 <b id="loginSeq">8,241</b> 位家园入住</div>
-          <div class="ver">演示版 v4.9 · 简答 + 拍照识别 · 麦克风免重复授权</div>
+          <div class="ver">演示版 v5.0 · 贴纸手账风 · 可跳过孩子 · 拍照上传</div>
         </div>
 
         <form id="loginForm" novalidate>
@@ -1301,7 +1561,7 @@
 
         <div class="privacy">
           <p>· 你的手机号只用于登录和查询订单。</p>
-          <p>· 报告基于建档信息 + 10 道测评题生成，可随时重做。</p>
+          <p>· 报告基于建档信息 + 家长 9 题 + 孩子 4 题生成，可随时重做。</p>
         </div>
       </section>
 
@@ -1386,7 +1646,7 @@
           </div>
 
           <p class="err" id="formErr"></p>
-          <button class="btn primary" type="submit">下一步：10 道测评题</button>
+          <button class="btn primary" type="submit">下一步：家长先答 9 题</button>
           <p class="tiny" style="text-align:center;margin-top:12px">报告只给建议，不推荐具体机构</p>
         </form>
       </section>
@@ -1417,10 +1677,14 @@
       <!-- 5 避雷报告 -->
       <section class="screen" id="s-report">
         <div class="rep-head">
-          <p class="kicker">诊断结果 · 家长 6 题 + 孩子 4 题</p>
+          <p class="kicker">诊断结果 · 家长 9 题 + 孩子 4 题</p>
           <div class="stale-tip" id="repStale" hidden>
             <span>这是上一次的诊断结果</span>
             <button type="button" id="repRedo">按本次重新测评 →</button>
+          </div>
+          <div class="stale-tip child-miss" id="repChildMiss" hidden>
+            <span>孩子部分先跳过了，孩子的兴趣和抗挫相关结论只是估算</span>
+            <button type="button" id="repChildAdd">补测孩子 4 题 →</button>
           </div>
           <div class="rep-meta" id="repMeta"></div>
           <h1 class="rep-title" id="repTitle">给 6 岁 · 一年级<br>的判断</h1>
@@ -1436,11 +1700,11 @@
         </div>
 
         <div class="block">
-          <div class="block-h"><span class="dot"></span>孩子自身特性<span class="n">来自 10 道题</span></div>
+          <div class="block-h"><span class="dot"></span>孩子自身特性<span class="n">来自测评</span></div>
           <div id="repTraits"></div>
         </div>
 
-        <div class="stage-note" id="repStage"></div>
+        <div class="rep-stage" id="repStage"></div>
 
         <div class="block">
           <div class="block-h"><span class="dot green"></span>测评依据<span class="n" id="repEvidN">家长 6 题 · 孩子 4 题</span></div>
@@ -2172,7 +2436,7 @@ function nextQuestion(answers) {
 
 function obsOf(assessment) {
   const A = assessment && assessment.answers;
-  if (!A || !A.interest || !A.slots) return null;
+  if (!A || !A.slots) return null;
   const g = (q, f) => (A[q] ? A[q][f] : undefined);
   const age = state.profile ? +state.profile.age : 7;
   const defMin = age <= 5 ? 10 : age === 6 ? 12 : age <= 8 ? 18 : age <= 10 ? 22 : 26;
@@ -2199,8 +2463,8 @@ function obsOf(assessment) {
     gapText: A.entry ? A.entry.label : '未单独测（按年级推算）',
     screenScore: typeof g('screen', 'v') === 'number' ? g('screen', 'v') : 1.5,
     screenText: A.screen ? A.screen.label : '未单独测',
-    favorite: g('interest', 'v'),
-    favoriteText: A.interest.label,
+    favorite: g('interest', 'v') || null,
+    favoriteText: A.interest ? A.interest.label : '孩子部分未测',
     childPersist: g('childHard', 'v'),
     childPersistText: A.childHard ? A.childHard.label : '—',
     rewardText: A.childReward ? A.childReward.label : '',
@@ -2457,7 +2721,7 @@ function buildReport(pr) {
   if (pr.extra) summary += ` 你补充的「${pr.extra}」已计入本轮甄选。`;
   if (pr.follow && pr.follow.length) {
     const picks = pr.follow.filter(f => f.a).map(f => `「${f.a}」`).join('');
-    if (picks) summary += ` 追问里你选的是 ${picks}，已并入选课标准。`;
+    if (picks) summary += ` 你在简答里补充的是 ${picks}，已并入选课标准。`;
   }
 
   return {
@@ -3128,6 +3392,10 @@ function renderReport() {
     return;
   }
   const r = state.report;
+  const A0 = (state.assessment && state.assessment.answers) || {};
+  const childDone = Object.keys(A0).some(k => ASK[k] && ASK[k].who === 'child');
+  $('#repChildMiss').hidden = childDone;
+  $('#repChildAdd').onclick = resumeChildAssess;
   $('#repMeta').innerHTML = `${r.date}<span class="sep"></span>${pr.age} 岁 · ${pr.city} · ${pr.grade}<span class="sep"></span>${r.stage.label}`;
   $('#repTitle').innerHTML = `给 ${pr.age} 岁 · ${pr.grade}<br>的判断`;
   $('#repLede').textContent = r.summary;
@@ -3170,7 +3438,7 @@ function renderReport() {
 
   const ob = r.obs;
   if (ob) {
-    $('#repEvidN').textContent = '家长 6 题 · 孩子 4 题';
+    $('#repEvidN').textContent = childDone ? '家长 6 题 · 孩子 4 题' : '家长 9 题 · 孩子未测';
     const obsBits = [
       ob.focusAsked ? `能做喜欢的事 ${ob.attentionMin} 分钟` : `专注按 ${ob.attentionMin} 分钟估算`,
       ob.remindText ? `写作业需提醒「${ob.remindText}」` : '',
@@ -3184,7 +3452,7 @@ function renderReport() {
     $('#repEvid').innerHTML = [
       ['家长观察', obsBits],
       ['时间与节奏', timeBits],
-      ['孩子自评', `最喜欢「${ob.favoriteText}」 · 不会的题「${ob.childPersistText}」`]
+      ['孩子自评', childDone ? `最喜欢「${ob.favoriteText}」 · 不会的题「${ob.childPersistText}」` : '孩子不在身边，这部分先空着；补测 4 题会更准']
     ].map(([k, v]) => `<div class="evid-row"><div class="evid-k">${k}</div><div class="evid-v">${esc(v)}</div></div>`).join('');
   } else {
     $('#repEvidN').textContent = '未测评';
@@ -3754,9 +4022,11 @@ function renderAssess() {
         <h2>家长部分完成</h2>
         <p>6 道选择 + 3 道简答都记下了，后面不用再拿手机。<br>剩下 4 题交给孩子，你只读题，怎么选都不算错。</p>
         <button class="btn primary" id="asGoChild">把手机交给孩子 →</button>
-        <div style="margin-top:14px"><button class="as-back" type="button" id="asBackHandoff">← 返回上一题修改</button></div>
+        <button class="btn ghost" id="asSkipChild" style="margin-top:10px">孩子不在身边，先跳过</button>
+        <div style="margin-top:12px"><button class="as-back" type="button" id="asBackHandoff">← 返回上一题修改</button></div>
       </div>`;
     $('#asGoChild').onclick = () => { asPhase = 'child'; renderAssess(); };
+    $('#asSkipChild').onclick = () => finishAssess({ skip: true });
     $('#asBackHandoff').onclick = () => {
       if (asFollow) { asFuIdx = Math.max(0, asFollow.length - 1); asPhase = 'follow'; renderAssess(); return; }
       const lastParent = asOrder.slice().reverse().find(k => ASK[k] && ASK[k].who === 'parent');
@@ -3793,9 +4063,9 @@ function renderAssess() {
         <span id="fuHint">可以直接打字，也可以语音，或拍试卷让我们看</span>
       </div>
       <div class="fu-preview" id="fuPreview" hidden>
-        <img id="fuImg" alt="上传的图片">
+        <img id="fuImg" alt="">
         <div class="fu-pv-meta">
-          <span id="fuOcrHint">识别中…</span>
+          <span id="fuOcrHint">图片已附上</span>
           <button type="button" id="fuRemove">移除</button>
         </div>
       </div>
@@ -3810,37 +4080,42 @@ function renderAssess() {
     `;
     const ta = $('#fuText');
     const next = $('#fuNext');
-    ta.oninput = () => { next.disabled = ta.value.trim().length < 2; };
+    const syncFuNext = () => { next.disabled = ta.value.trim().length < 2 && !f.img; };
+    ta.oninput = syncFuNext;
     $('#asSpeak').onclick = speakCurrent;
     $('#fuMic').onclick = () => startVoice('follow');
     $('#fuFile').onchange = async ev => {
       const file = ev.target.files && ev.target.files[0];
       if (!file) return;
-      $('#fuPreview').hidden = false;
+      const pv = $('#fuPreview');
+      pv.hidden = false;
+      pv.classList.remove('noimg');
       $('#fuImg').src = URL.createObjectURL(file);
-      $('#fuOcrHint').textContent = '识别中…（本地 OCR，约 2 秒）';
+      $('#fuOcrHint').textContent = '图片已附上，不会显示在答案里';
       f.img = true;
+      f.fileName = file.name;
+      syncFuNext();
       try {
         const r = await fetch(ASR.url.replace(/\/api\/asr\/?$/, '/api/ocr'), { method: 'POST', headers: { 'content-type': file.type || 'application/octet-stream' }, body: file });
         const j = await r.json();
         if (j.text && j.text.trim()) {
-          const t = j.text.trim().replace(/\n+/g, '；').slice(0, 180);
-          f.ocr = t;
-          ta.value = (ta.value ? ta.value + '\n' : '') + '（图片内容）' + t;
-          ta.dispatchEvent(new Event('input'));
-          $('#fuOcrHint').textContent = '已识别，文字已加到上面，可删改';
+          f.ocr = j.text.trim().slice(0, 300);
+          $('#fuOcrHint').textContent = '图片已附上 · 已识别文字，报告里一起参考，不会覆盖你的答案';
         } else {
-          $('#fuOcrHint').textContent = '图片已附上，但没识别出文字';
+          $('#fuOcrHint').textContent = '图片已附上';
         }
       } catch (e) {
-        $('#fuOcrHint').textContent = '图片已附上（本地 OCR 未启动）';
+        $('#fuOcrHint').textContent = '图片已附上';
       }
     };
+    $('#fuImg').onerror = () => $('#fuPreview').classList.add('noimg');
     $('#fuRemove').onclick = () => {
       $('#fuPreview').hidden = true;
+      $('#fuPreview').classList.remove('noimg');
       $('#fuImg').removeAttribute('src');
-      f.img = false; f.ocr = '';
+      f.img = false; f.ocr = ''; f.fileName = '';
       $('#fuFile').value = '';
+      syncFuNext();
     };
     $('#asBack').onclick = () => {
       if (asFuIdx === 0) return;
@@ -3990,14 +4265,29 @@ function startFollow() {
   renderAssess();
 }
 
-function finishAssess() {
+function finishAssess(opt = {}) {
   if (asFollow) {
     state.profile.follow = asFollow.map(f => ({ q: f.q, why: f.why, a: (f.answer || '').trim(), img: !!f.img }));
   }
-  state.assessment = { answers: asAnswers, at: Date.now() };
+  state.assessment = { answers: asAnswers, at: Date.now(), skipChild: !!opt.skip };
   state.report = buildReport(state.profile);
   save();
   go('diagnosing', { push: false });
+}
+
+/* 跳过孩子部分的家长，回到报告后可补测 4 题 */
+function resumeChildAssess() {
+  const A = (state.assessment && state.assessment.answers) || {};
+  asAnswers = A;
+  asFollow = null;
+  asFuIdx = 0;
+  asFuPick = null;
+  asPhase = 'child';
+  asOrder = [];
+  const q = nextQuestion(asAnswers);
+  asQid = q || 'interest';
+  asOrder = [asQid];
+  go('assess', { push: false });
 }
 
 /* ---------- 诊断动效 ---------- */
