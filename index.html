@@ -1261,7 +1261,7 @@
           <h1 class="h1">先留一个手机号</h1>
           <p class="sub">只用来生成你自己的档案。不发广告，不要孩子姓名，也不要身份证。</p>
           <div class="login-seq">避雷星第 <b id="loginSeq">8,241</b> 位家园入住</div>
-          <div class="ver">演示版 v4.6 · 课程库 63 门</div>
+          <div class="ver">演示版 v4.7 · 6 轮追问 · 火山识别</div>
         </div>
 
         <form id="loginForm" novalidate>
@@ -1433,7 +1433,7 @@
         </div>
 
         <div class="block" id="repFollowBlock">
-          <div class="block-h"><span class="dot green"></span>追问记录<span class="n">3 轮</span></div>
+          <div class="block-h"><span class="dot green"></span>追问记录<span class="n">6 轮</span></div>
           <div id="repFollow"></div>
         </div>
 
@@ -3106,6 +3106,8 @@ function renderReport() {
   $('#repRedo').onclick = () => go('assess');
   const follow = r.follow || [];
   $('#repFollowBlock').hidden = follow.length === 0;
+  const fuN = $('#repFollowBlock .n');
+  if (fuN) fuN.textContent = follow.length + ' 轮';
   $('#repFollow').innerHTML = follow.map((f, i) => `
     <div class="fu-row">
       <div class="fu-q">追问 ${i + 1}｜${esc(f.q)}</div>
@@ -3724,11 +3726,12 @@ function renderAssess() {
   }
 
   if (asPhase === 'follow') {
+    if (asFuIdx >= 3 && !asFollow[asFuIdx]) asFollow[asFuIdx] = hydrateFollow(asFuIdx);
     const f = asFollow[asFuIdx];
     const saved = f.answer;
     const pick = asFuPick != null ? asFuPick : (saved ? saved.i : null);
     body.innerHTML = `
-      <p class="kicker" style="margin-bottom:10px">追问 · ${asFuIdx + 1} / 3</p>
+      <p class="kicker" style="margin-bottom:10px">追问 · ${asFuIdx + 1} / 6</p>
       <div class="as-why"><b>为什么问你：</b>${f.why}</div>
       <div class="as-q-row">
         <h1 class="as-q">${esc(f.q)}</h1>
@@ -3740,13 +3743,13 @@ function renderAssess() {
         ${f.opts.map((o, i) => `<button class="as-opt ${pick === i ? 'on' : ''}" type="button" data-i="${i}"><span class="k">${i + 1}</span>${esc(o)}</button>`).join('')}
       </div>
       <textarea class="fu-text" id="fuText" maxlength="80" placeholder="想补充一句可以写在这里（可不填）">${saved && saved.note ? esc(saved.note) : ''}</textarea>
-      <button class="btn primary fu-next" id="fuNext" ${pick == null ? 'disabled' : ''}>${asFuIdx === 2 ? '生成避雷报告' : '下一题'} →</button>
+      <button class="btn primary fu-next" id="fuNext" ${pick == null ? 'disabled' : ''}>${asFuIdx >= 5 ? '生成避雷报告' : '下一题'} →</button>
       <div class="as-nav">
         <button class="as-back" type="button" id="asBack" ${asFuIdx === 0 ? 'disabled' : ''}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
           上一题
         </button>
-        <span>追问 ${asFuIdx + 1}/3 · 可跳着补充</span>
+        <span>追问 ${asFuIdx + 1}/6 · 可跳着补充</span>
       </div>
     `;
     $$('#asBody .as-opt').forEach(b => {
@@ -3765,7 +3768,7 @@ function renderAssess() {
     };
     $('#fuNext').onclick = () => {
       f.answer = { i: asFuPick, label: f.opts[asFuPick], note: ($('#fuText').value || '').trim() };
-      if (asFuIdx >= 2) { finishAssess(); return; }
+      if (asFuIdx >= 5) { finishAssess(); return; }
       asFuIdx++;
       asFuPick = null;
       renderAssess();
@@ -3906,6 +3909,33 @@ function buildFollowups() {
       opts: ['先花小钱试 4 次', '报完整一期，但要有效果', '先不报，家里自己带']
     }
   ];
+}
+
+function hydrateFollow(i) {
+  const pr = state.profile;
+  const ob = obsOf({ answers: asAnswers }) || {};
+  const want = pr.wants[0];
+  const a1 = asFollow[0] && asFollow[0].answer ? asFollow[0].answer.label : '你说的目标';
+  const a2 = asFollow[1] && asFollow[1].answer ? asFollow[1].answer.label : '你提到的卡点';
+  const interest = ob.interest || want;
+  if (i === 3) return {
+    tag: '陪跑',
+    why: `你填的是一周 ${ob.cap || 2} 个时段，「${want}」能不能落地，很大程度取决于平时谁陪、能不能固定下来。`,
+    q: '平时主要谁陪他做这件事？',
+    opts: ['妈妈主导', '爸爸主导', '老人接送，学什么我们定', '基本没人陪，靠孩子自己']
+  };
+  if (i === 4) return {
+    tag: '频次',
+    why: `你刚选的是「${a2}」，我们想把它还原成一个具体场景，判断是偶发还是稳定模式。`,
+    q: `上周做「${interest}」时，这个情况大概出现几次？`,
+    opts: ['几乎每次都这样', '一周两三次', '偶尔一次', '没注意过，回去看一下']
+  };
+  return {
+    tag: '验收',
+    why: `你希望先看到「${a1}」，8 周后我们按同一件事验收，避免只凭感觉判断有没有用。`,
+    q: '8 周后，哪件事发生了你会觉得这笔钱没白花？',
+    opts: ['能自己独立完成一次', '愿意主动提起或主动做', '老师能说出具体进步', '有作品 / 成果拿得出手']
+  };
 }
 
 function startFollow() {
