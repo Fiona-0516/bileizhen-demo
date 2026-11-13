@@ -1533,10 +1533,10 @@
       <section class="screen" id="s-login">
         <div class="auth-head">
           <p class="kicker">STEP 1 / 4</p>
-          <h1 class="h1">先留一个手机号</h1>
+          <h1 class="h1">欢迎登陆避雷星球</h1>
           <p class="sub">只用来生成你自己的档案。不发广告，不要孩子姓名，也不要身份证。</p>
-          <div class="login-seq">避雷星第 <b id="loginSeq">8,241</b> 位家园入住</div>
-          <div class="ver">演示版 v5.0 · 贴纸手账风 · 可跳过孩子 · 拍照上传</div>
+          <div class="login-seq">避雷星第 <b id="loginSeq">8,225</b> 位家园入住</div>
+          <div class="ver">演示版 v5.1 · 贴纸手账风 · 可跳过孩子 · 拍照上传</div>
         </div>
 
         <form id="loginForm" novalidate>
@@ -1754,7 +1754,7 @@
           <p class="rd-k">平 台 服 务 数 据</p>
           <div class="rd-n" id="rdNum">128,463</div>
           <div class="rd-l">累计甄选服务总次数</div>
-          <div class="rd-seq" id="rdSeq">避雷星第 <b>8,241</b> 位家园入住</div>
+          <div class="rd-seq" id="rdSeq">避雷星第 <b>8,225</b> 位家园入住</div>
           <div class="rd-bar"><i></i></div>
         </div>
 
@@ -3569,9 +3569,15 @@ function buildRec(pr) {
   return { high, rest, risks: all.filter(x => x.risk), primaryCount: primary.length };
 }
 
+/* 入住序号：基准 8225，每来一位新家长 +1；同一会话内登录页与推荐页显示同一个数 */
+const SEQ_BASE = 8225;
 function ensureSeq() {
-  let n = +localStorage.getItem('blz_seq');
-  if (!n) { n = 8000 + Math.floor(Math.random() * 500); localStorage.setItem('blz_seq', n); }
+  const kept = sessionStorage.getItem('blz_seq5');
+  if (kept) return +kept;
+  let n = +localStorage.getItem('blz_seq5');
+  n = n ? n + 1 : SEQ_BASE;
+  localStorage.setItem('blz_seq5', n);
+  sessionStorage.setItem('blz_seq5', n);
   return n;
 }
 
